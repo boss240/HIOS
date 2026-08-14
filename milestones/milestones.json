@@ -1,0 +1,32 @@
+[
+  {
+    "title": "M1 Foundation",
+    "description": "Repo setup, architecture skeleton, branch/process baseline.",
+    "source": "HEDS-021/HEDS-022"
+  },
+  {
+    "title": "M2 API/Data Foundations",
+    "description": "API skeleton, data model foundation, DQ hooks, contract layout.",
+    "source": "HEDS-004/HEDS-005/HEDS-009"
+  },
+  {
+    "title": "M3 Forecasting MVP",
+    "description": "Weather integration, PV forecasting methodology implementation, ML ops hooks.",
+    "source": "HEDS-010/HEDS-011/HEDS-012"
+  },
+  {
+    "title": "M4 Customer Portal",
+    "description": "Frontend dashboard, plant views, forecast views, reports and alerts.",
+    "source": "HEDS-013"
+  },
+  {
+    "title": "M5 Mobile/Admin/Billing",
+    "description": "Mobile app, admin panel, billing and entitlements.",
+    "source": "HEDS-014/HEDS-015/HEDS-016"
+  },
+  {
+    "title": "M6 QA/Acceptance/Handover",
+    "description": "QA completion, BCP/DR, compliance, technical acceptance and handover.",
+    "source": "HEDS-018/HEDS-019/HEDS-020/HEDS-023"
+  }
+]

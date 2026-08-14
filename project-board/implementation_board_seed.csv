@@ -1,0 +1,6 @@
+issue_key,title,status,milestone,priority
+EPIC-001,Project setup and repository baseline,Ready,M1 Foundation,Critical
+EPIC-002,Architecture skeleton,Ready,M1 Foundation,Critical
+EPIC-003,API foundation,Ready,M2 API/Data Foundations,Critical
+EPIC-004,Data foundation,Ready,M2 API/Data Foundations,Critical
+EPIC-011,QA and acceptance framework,Ready,M6 QA/Acceptance/Handover,Critical

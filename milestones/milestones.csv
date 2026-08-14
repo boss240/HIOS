@@ -1,0 +1,7 @@
+title,description,source
+M1 Foundation,"Repo setup, architecture skeleton, branch/process baseline.",HEDS-021/HEDS-022
+M2 API/Data Foundations,"API skeleton, data model foundation, DQ hooks, contract layout.",HEDS-004/HEDS-005/HEDS-009
+M3 Forecasting MVP,"Weather integration, PV forecasting methodology implementation, ML ops hooks.",HEDS-010/HEDS-011/HEDS-012
+M4 Customer Portal,"Frontend dashboard, plant views, forecast views, reports and alerts.",HEDS-013
+M5 Mobile/Admin/Billing,"Mobile app, admin panel, billing and entitlements.",HEDS-014/HEDS-015/HEDS-016
+M6 QA/Acceptance/Handover,"QA completion, BCP/DR, compliance, technical acceptance and handover.",HEDS-018/HEDS-019/HEDS-020/HEDS-023

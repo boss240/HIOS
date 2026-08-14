@@ -1,0 +1,7 @@
+id,check,source,status
+ACC-001,Repository structure matches HEDS implementation baseline,HEDS-022,Pending
+ACC-002,Backlog created from HEDS-022 work packages,HEDS-022,Pending
+ACC-003,Milestones created from HEDS-021 release plan,HEDS-021,Pending
+ACC-004,Acceptance checklist mapped to HEDS-023,HEDS-023,Pending
+ACC-005,Sprint 1 tasks created and assigned,HEDS-022,Pending
+ACC-006,Docs folder contains final register and HEDS package references,HEDS-030,Pending

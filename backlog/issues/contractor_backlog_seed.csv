@@ -1,0 +1,13 @@
+issue_key,title,body,milestone,priority,labels
+EPIC-001,Project setup and repository baseline,"Initialize repo structure, branch strategy, contribution rules, CI placeholders and documentation links.",Foundation,Critical,"type:epic,priority:critical"
+EPIC-002,Architecture skeleton,"Create architecture folders, ADR template, high-level service skeleton and environment map.",Foundation,Critical,"type:epic,priority:critical"
+EPIC-003,API foundation,"Create API service skeleton, OpenAPI placement, contract testing placeholder and auth boundary.",API/Data,Critical,"type:epic,priority:critical"
+EPIC-004,Data foundation,"Create data model package, migration placeholder, schema conventions and DQ hooks.",API/Data,Critical,"type:epic,priority:critical"
+EPIC-005,Forecasting foundation,"Create ML/forecasting package layout, model registry placeholder, feature pipeline skeleton.",ML/Forecasting,High,"type:epic,priority:high"
+EPIC-006,Frontend portal foundation,"Create web app skeleton, role-aware routing placeholder and dashboard shell.",Application,High,"type:epic,priority:high"
+EPIC-007,Mobile foundation,Create mobile app skeleton and push notification integration placeholder.,Application,High,"type:epic,priority:high"
+EPIC-008,Admin/backoffice foundation,Create admin module skeleton and sensitive-action audit pattern.,Application,High,"type:epic,priority:high"
+EPIC-009,Billing and entitlements foundation,Create billing domain model and entitlement enforcement placeholder.,Commercial,High,"type:epic,priority:high"
+EPIC-010,Observability and operations foundation,Create logging/metrics/tracing placeholders and operational runbook links.,Operations,High,"type:epic,priority:high"
+EPIC-011,QA and acceptance framework,"Create test strategy mapping, acceptance checklist and release gates.",QA,Critical,"type:epic,priority:critical"
+EPIC-012,Security and compliance baseline,Create security controls mapping and compliance evidence placeholders.,Security/Compliance,High,"type:epic,priority:high"

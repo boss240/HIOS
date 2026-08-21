@@ -1,0 +1,62 @@
+openapi: 3.1.0
+info:
+  title: HIOS API
+  version: 0.1.0
+  description: Initial OpenAPI placeholder for HIOS Phase 1 API foundation.
+servers:
+  - url: https://api.example.invalid
+    description: Placeholder API endpoint
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      tags:
+        - system
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+  /plants:
+    get:
+      summary: List solar plants
+      operationId: listPlants
+      tags:
+        - plants
+      responses:
+        '200':
+          description: Plant list placeholder
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Plant'
+components:
+  schemas:
+    Plant:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        capacityKw:
+          type: number
+          format: float

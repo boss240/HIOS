@@ -1,0 +1,28 @@
+name: HIOS CI Placeholder
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  documentation-baseline:
+    name: Documentation baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required files
+        shell: bash
+        run: |
+          test -f README.md
+          test -f CONTRIBUTING.md
+          test -f docs/branching.md
+          test -f docs/architecture/README.md
+          test -f docs/architecture/adr/0000-template.md
+          test -f docs/api/openapi.yaml
+
+      - name: Report placeholder status
+        run: echo "HIOS Phase 1 documentation baseline is present."

@@ -11,6 +11,7 @@ This folder defines the first QA and acceptance framework for HIOS Phase 1.
 
 - `test-categories.md`: initial testing categories.
 - `release-gates.md`: release gate checklist.
+- `acceptance-gates.md`: Sprint 1 repository, board, architecture, API/data, and handover gates.
 - `defect-lifecycle.md`: defect workflow baseline.
 
 ## QA principles

@@ -20,6 +20,7 @@ This folder captures the first implementation-level data baseline for HIOS Phase
 
 ## Current files
 
+- `data-model-baseline.md`: Sprint 1 entity, ownership, and acceptance baseline.
 - `schema-conventions.md`: initial naming and schema rules.
 - `data-quality-checklist.md`: first QA gates for data operations.
 

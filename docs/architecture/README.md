@@ -30,4 +30,4 @@ This folder captures the first implementation-level architecture baseline for HI
 
 ## Decision records
 
-Use `docs/architecture/adr/0000-template.md` for architecture decisions. Number accepted ADRs sequentially.
+Use `docs/architecture/ADR_TEMPLATE.md` as the canonical Sprint 1 ADR template. Keep numbered decision records under `docs/architecture/adr/` and number accepted ADRs sequentially.

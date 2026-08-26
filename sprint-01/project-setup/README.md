@@ -19,3 +19,7 @@ Project setup establishes the repository baseline needed for contractor onboardi
 - Confirm branch protection settings in GitHub.
 - Confirm required reviewers for pull requests.
 - Expand CI once implementation code is introduced.
+
+## Sprint 1 operating link
+
+See `../SPRINT_01_EXECUTION_PLAN.md` for the active Sprint 1 checklist and exit criteria.

@@ -6,3 +6,5 @@ Scope:
 - Data model structure
 - Migration placeholder
 - Data quality hook placeholder
+
+Active Sprint 1 checklist: `../SPRINT_01_EXECUTION_PLAN.md`

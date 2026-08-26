@@ -11,6 +11,7 @@ Primary tracking objects:
 - GitHub Project: HIOS Implementation Phase 1
 - Sprint issue: #19 — SPRINT-01
 - Acceptance issue: #18 — Technical acceptance checklist
+- Sprint execution plan: `sprint-01/SPRINT_01_EXECUTION_PLAN.md`
 
 ## Source documentation
 

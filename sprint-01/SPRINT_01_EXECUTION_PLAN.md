@@ -100,4 +100,3 @@ Start Implementation Phase 1 by preparing the repository, architecture skeleton,
 ## Implementation continuation
 
 PR #20 merged. PR #21 supplies runtime, SQL migrations, tenant isolation, retention decisions and PostgreSQL integration evidence. The unchecked items above are the historical start checklist; live completion and final acceptance are tracked in #19 and #18. See STATUS.md.
-

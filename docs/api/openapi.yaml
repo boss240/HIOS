@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: HIOS API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Sprint 1 implementation contract. RS256 bearer JWT identifies one tenant;
     active database membership is required. Paths remain unversioned.
@@ -122,7 +122,7 @@ components:
         capacityKw:
           type: number
           minimum: 0
-          description: Installed capacity in kW; omitted when unknown. AC/DC basis pending.
+          description: Installed DC nameplate capacity in kW (kWp); omitted when unknown.
     PlantList:
       type: object
       additionalProperties: false

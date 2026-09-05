@@ -5,7 +5,7 @@ Date: 2026-09-05
 Owner: boss240 (implementation delegated to Codex)
 Related issues: #5, #6, #7, #8, #16, #19
 Authorization: owner requested runtime/database/auth/retention decisions and implementation.
-Evidence: the runtime PR linked to #19 and its Runtime integration CI run.
+Evidence: PR #21 and its Runtime integration CI run (linked in #19).
 Supersedes: open Sprint 1 runtime/database/auth decisions in earlier skeleton docs.
 
 ## Context and decision
@@ -17,7 +17,8 @@ read-only liveness and plant listing. Forecast workers remain a later epic.
 Use PostgreSQL 17 and psycopg 3. Ordered SQL migrations in migrations/ run in one
 transaction, serialize concurrent runners with an advisory lock, and verify
 SHA-256 of applied files. The first migration creates tenants, memberships and
-plants with required ownership, nonnegative finite capacity and a tenant/ID index.
+plants with required ownership, nonnegative finite DC nameplate capacity in kW
+(kWp) and a tenant/ID index. AC inverter ratings must not populate capacityKw.
 Use forward corrective migrations; restore from a verified backup for destructive
 rollback. Do not edit applied migrations. API startup never performs migrations.
 

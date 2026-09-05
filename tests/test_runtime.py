@@ -174,3 +174,42 @@ def test_database_failure_is_safe_and_health_independent(keys):
         assert response.status_code == 500
         contract(response, "/plants")
         assert response.json()["error"]["message"] == "Internal error"
+
+
+def test_migration_checksum_change_fails_closed(db):
+    with psycopg.connect(db) as connection:
+        connection.execute("UPDATE schema_migration SET checksum='changed'")
+    with pytest.raises(ValueError, match="Applied migration changed"):
+        migrate(db)
+
+
+def test_real_http_server(db, keys):
+    import socket
+    import threading
+    import httpx
+    import uvicorn
+
+    app = create_app(db, keys[1], "hios-test", "hios-api")
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    server = uvicorn.Server(uvicorn.Config(app, log_level="error"))
+    thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
+    thread.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not server.started and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert server.started
+        url = f"http://127.0.0.1:{listener.getsockname()[1]}"
+        response = httpx.get(url + "/health")
+        assert response.status_code == 200
+        contract(response, "/health")
+        response = httpx.get(url + "/plants", headers=headers(keys))
+        assert response.status_code == 200
+        assert [p["id"] for p in response.json()["data"] == ["002", "004"]
+        contract(response, "/plants")
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
+        listener.close()
+    assert not thread.is_alive()

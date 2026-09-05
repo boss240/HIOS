@@ -5,7 +5,7 @@ Source: HEDS-003 System Architecture Document and HEDS-007 DevOps and Deployment
 
 ## Purpose
 
-This document defines the first deployable-system view for HIOS Phase 1. It is technology-neutral until the runtime stack is selected.
+This document defines the first deployable-system view for HIOS Phase 1. ADR-0001 selects Python/FastAPI with PostgreSQL 17 for the first API slice.
 
 ## Logical deployment units
 
@@ -15,7 +15,7 @@ This document defines the first deployable-system view for HIOS Phase 1. It is t
 | Admin application | Backoffice and support operations | May be separate app or role-gated area. |
 | API application | HTTP API, auth boundary, service orchestration | Owns external API contract. |
 | Worker runtime | Forecast jobs, provider ingestion, scheduled tasks | Required for forecasting and operations. |
-| Database | Tenant, user, plant, forecast, audit data | Engine not selected yet. |
+| Database | Tenant, membership and plant; later forecast/audit domains | PostgreSQL 17. |
 | Object/file storage | Exported reports, evidence, artifacts | Optional, pending product scope. |
 | Observability stack | Logs, metrics, traces, alerts | Tooling not selected yet. |
 
@@ -36,7 +36,7 @@ This document defines the first deployable-system view for HIOS Phase 1. It is t
 ## Open decisions
 
 - Cloud provider and deployment target.
-- Runtime packaging model.
-- Database engine.
+- Forecast worker packaging beyond the initial modular monolith.
+- Production database provisioning and restore drills.
 - Secret management.
 - Observability tooling.

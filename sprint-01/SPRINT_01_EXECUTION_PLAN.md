@@ -1,6 +1,6 @@
 # SPRINT-01: Project Setup, Architecture Skeleton, API/Data Foundations
 
-Status: Active
+Status: Implementation delivered; final technical acceptance tracked in #18/#19
 Start date: 2026-08-26
 Sprint issue: #19
 Project board: HIOS Implementation Phase 1
@@ -67,7 +67,7 @@ Start Implementation Phase 1 by preparing the repository, architecture skeleton,
 - [ ] Review Sprint 1 evidence before closing #19.
 - [ ] Record final Sprint 1 acceptance decision in #18.
 
-## Board Status Baseline
+## Historical Board Status at Sprint Start
 
 | Status | Issues |
 | --- | --- |
@@ -80,7 +80,7 @@ Start Implementation Phase 1 by preparing the repository, architecture skeleton,
 
 - None blocking Sprint 1 start.
 
-## Open Decisions
+## Original Decisions — resolved by ADR-0001 and review-policy.md
 
 - Runtime packaging model: modular monolith, services, or hybrid.
 - Database engine and migration framework.
@@ -95,3 +95,9 @@ Start Implementation Phase 1 by preparing the repository, architecture skeleton,
 - #18 contains the Sprint 1 acceptance decision.
 - CI placeholder checks remain green.
 - Project Board statuses are updated before closing #19.
+
+
+## Implementation continuation
+
+PR #20 merged. PR #21 supplies runtime, SQL migrations, tenant isolation, retention decisions and PostgreSQL integration evidence. The unchecked items above are the historical start checklist; live completion and final acceptance are tracked in #19 and #18. See STATUS.md.
+

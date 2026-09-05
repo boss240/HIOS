@@ -36,4 +36,5 @@ Forecast records should preserve:
 
 ## Migration policy
 
-Migration tooling is not selected yet. Until selected, schema changes must be documented here or in an ADR.
+Use PostgreSQL 17 and the checksum-verified SQL runner under ADR-0001.
+Every schema change adds a new ordered SQL migration and integration evidence.

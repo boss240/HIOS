@@ -6,7 +6,7 @@ Source: HEDS-004 API Specification and HEDS-018 QA and Test Strategy
 ## Purpose
 
 Sprint 1 validates the OpenAPI document and documented examples before review.
-This is static contract validation; server/client integration tests remain pending.
+Static validation is complemented by PostgreSQL-backed runtime tests in tests/test_runtime.py.
 
 ## Implemented checks
 
@@ -38,10 +38,12 @@ checking that all eight required files are nonempty. `ci.yml` retains the broade
 documentation-presence check. Neither job proves runtime auth, tenant isolation,
 response correctness, availability or forecasting quality.
 
-## Required next tests
+## Runtime integration suite
 
-- Exercise a running service against these responses and error codes.
-- Prove tenant filtering occurs before pagination using two tenants' fixtures.
-- Check missing identity, forbidden tenant context, invalid paging and empty pages.
-- Verify returned item count never exceeds the requested limit.
-- Add consumer compatibility checks when clients exist.
+- Running ASGI and TCP service checks against response/error schemas.
+- Tenant filtering before pagination using two tenants and interleaved plant IDs.
+- Missing/forged/expired identity, revoked membership, tenant denial, invalid paging and empty pages.
+- Bounded page count and omitted unknown capacity.
+- Consumer compatibility checks remain future work when clients exist.
+
+Run python -m pytest -q with TEST_DATABASE_URL set; see [runtime setup](runtime.md).

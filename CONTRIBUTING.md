@@ -50,6 +50,6 @@ python scripts/check_api_contract.py
 Both `Documentation baseline` and `Sprint 1 baseline files` must pass before merge.
 The latter also validates the API specification and contract examples.
 These checks do not certify a running service or tenant isolation implementation.
-On 2026-09-05, `main` had no branch protection and the repository had no rulesets.
-Required reviewer policy remains an owner decision; review is required by this
-document but is not currently enforced by GitHub.
+Branch protection is enabled. See [review policy](docs/qa/review-policy.md) for
+required checks, one approval and the explicit sole-owner administrator exception.
+Runtime changes must also pass the Runtime integration check.

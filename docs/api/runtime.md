@@ -54,8 +54,8 @@ python -m pytest -q --junitxml=test-results.xml
 Tests create uniquely named schemas and remove only those schemas afterwards.
 The test role needs schema creation rights. Never point tests at production.
 GitHub Actions provisions PostgreSQL 17 and uploads the JUnit result artifact.
-Tests use real database queries and in-process ASGI HTTP requests, not an
-externally deployed production service.
+Tests use real database queries, in-process ASGI requests and an ephemeral
+Uvicorn TCP HTTP server. This is not an externally deployed production service.
 
 Sources: [FastAPI testing](https://fastapi.tiangolo.com/tutorial/testing/),
 [PyJWT validation](https://pyjwt.readthedocs.io/en/latest/api.html).

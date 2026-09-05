@@ -31,6 +31,13 @@ built against 0.1.0 must provide authorization and consume `data`, `limit` and
 `offset`; do not infer production compatibility from the earlier placeholder.
 No URL versioning or runtime deployment decision is implied.
 
+## Contract 0.3.0
+
+The executable first slice fixes RS256 JWT and signed tenant_id with active
+database membership. Offset is capped at 2147483647. capacityKw means installed
+DC nameplate kW (kWp); existing clients must not send or interpret inverter AC
+ratings as this field. No production consumers are registered in this baseline.
+
 ## Compatibility expectations
 
 - API changes must be traceable to GitHub issues.

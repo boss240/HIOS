@@ -37,14 +37,13 @@ This document defines the initial service boundaries for HIOS Phase 1. It is a w
 | `GET /plants` | Identity resolves tenant; registry filters before pagination | Cross-tenant denial and pagination tests |
 | Standard errors | API returns safe code, message and requestId | Invalid input, unauthenticated and forbidden cases |
 
-The contract uses proposed bearer authentication without fixing token format or
-provider. Missing/invalid identity yields 401; unresolved or forbidden tenant
+The contract uses RS256 JWT with configured issuer/audience/public key. Missing/invalid identity yields 401; unresolved or forbidden tenant
 context yields 403. Database access must remain inside the owning boundary.
-The current CI validates documents and examples only; runtime evidence is pending.
+CI also runs real PostgreSQL integration tests including two-tenant access and paging.
 
 ## Remaining decisions
 
-- Runtime packaging model: modular monolith, services, or hybrid.
+- Sprint 1 uses the modular monolith in ADR-0001; later worker separation remains.
 - Message/event infrastructure, if any.
-- Database boundary enforcement model.
+- Later write endpoints and database RLS hardening; this slice uses application isolation.
 - External provider retry and degraded-mode strategy.

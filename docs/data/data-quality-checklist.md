@@ -22,6 +22,6 @@ Source: HEDS-009 Data Operations and Data Quality Manual
 
 ## Open decisions
 
-- Database engine and migration workflow.
-- Data retention policy.
+- PostgreSQL 17 and SQL migration runner selected (ADR-0001).
+- Engineering retention defaults selected in retention-policy.md.
 - Data export and audit evidence format.

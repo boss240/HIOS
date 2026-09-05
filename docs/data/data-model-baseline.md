@@ -29,7 +29,7 @@ This file is the Sprint 1 baseline for the HIOS implementation data model. It de
 - Public API payloads must not expose internal persistence identifiers unless intentionally documented.
 - Data quality checks must cover required fields, timestamp consistency, tenant isolation, and forecast traceability.
 
-## Plant API mapping (Sprint 1 proposal)
+## Plant API mapping (Sprint 1 implementation)
 
 | Public field | Conceptual storage | Constraint |
 | --- | --- | --- |
@@ -38,8 +38,8 @@ This file is the Sprint 1 baseline for the HIOS implementation data model. It de
 | `capacityKw` | Optional installed capacity | Nonnegative number, kW; omitted when unknown |
 | Not exposed | `tenant_id` | Required ownership boundary for every plant |
 
-`capacityKw` retains the existing API field and unit. AC/DC rating basis must be
-settled before production ingestion; forecast power/energy units remain open.
+`capacityKw` retains the existing API field and unit. Capacity means installed DC nameplate kW (kWp); do not mix AC inverter ratings.
+Forecast power/energy units remain for the forecasting epic.
 List queries filter by authorized tenant before pagination and order by stable
 public plant ID. Offset pagination does not promise a snapshot during concurrent
 writes. Enforce unique public IDs and tenant-safe relationships when selecting
@@ -47,10 +47,10 @@ the database. Tenant selection is never inferred from a supplied plant ID alone.
 
 ## Remaining decisions
 
-- Database engine and migration framework.
-- Canonical unit conventions for plant capacity and forecast generation.
-- Retention periods for weather inputs, forecast outputs, and audit events.
-- Tenant isolation enforcement model.
+- PostgreSQL 17 and versioned SQL migrations selected in ADR-0001.
+- Plant capacity is DC nameplate kW; forecast unit conventions remain with #10.
+- Retention defaults are in [retention policy](retention-policy.md).
+- Signed tenant claim plus active membership and tenant-filtered SQL; see ADR-0001.
 - Model registry implementation.
 
 ## Sprint 1 Acceptance

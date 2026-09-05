@@ -36,8 +36,8 @@ Source: HEDS-003 System Architecture Document
 
 These are logical boundaries, not deployed services. See
 [service boundaries](service-boundaries.md), [environment map](environment-map.md)
-and [deployment view](deployment-view.md). The bearer-token contract is a proposal;
-identity provider, tenant selection and deployment packaging still require review.
+and [deployment view](deployment-view.md). ADR-0001 selects FastAPI, PostgreSQL and RS256 JWT with signed tenant_id
+plus active database membership. Production identity-provider integration remains.
 
 ## Outstanding assumptions
 

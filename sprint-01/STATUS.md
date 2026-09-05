@@ -1,56 +1,39 @@
 # Sprint 1 Status
 
 Date: 2026-09-05
-Status: Active; contract continuation prepared for PR review
+Status: Implementation delivered; technical acceptance and CI evidence tracked in #18/#19.
 
-## Summary
+## Delivered scope
 
-Sprint 1 is active. The repository baseline, project board status model, Sprint 1 execution plan, and placeholder CI checks are in place.
+- PR #20 merged as ab66700: normalized all eight requested baseline files and added static contract validation.
+- PR #21: FastAPI/Uvicorn read-only API, PostgreSQL 17, transactional SQL migrations,
+  RS256 JWT validation and active database membership before tenant-filtered queries.
+- GET /health, GET /plants and canonical /openapi.json implemented. Pagination,
+  finite DC capacity, safe errors and request correlation are defined and tested.
+- ADR-0001 accepts the delegated runtime/database/auth decisions. Engineering
+  retention defaults: weather 90d, forecast 730d, audit 365d, logs 30d, backups 35d.
+- Main protection configured: strict CI, one approval, stale approval dismissal,
+  resolved conversations, no force pushes/deletion. Sole-owner admin exception is
+  explicit in docs/qa/review-policy.md; no independent peer approval is claimed.
 
-Verified against `main` at `3fb385a`: all eight requested files already existed.
-Project 3 contains exactly the 14 canonical issues with the operating statuses
-below; duplicate EPIC-005 #9 is closed and is not on the board. No status reset
-or duplicate item creation was necessary.
+## Evidence
 
-## Continuation evidence
+PR #21's checks and #19 identify the exact reviewed commit and completed CI runs.
+The initial Runtime integration run 33977658735 passed 31 tests on PostgreSQL 17.
+The final suite also checks a real Uvicorn TCP server and migration checksum drift.
+JUnit artifacts are uploaded by the runtime workflow. Local Docker could not start;
+GitHub's PostgreSQL service supplies the database evidence.
 
-- Branch: `feature/19-sprint-1-contract-baseline`, related to #5, #6, #7, #8, #16 and #19.
-- Normalized contribution/review procedure, canonical ADR decision evidence,
-  request flow, service boundaries, Plant API/data mapping and acceptance gates.
-- Expanded OpenAPI 0.2.0 with liveness, protected plant listing, bounded paging,
-  standard errors and response examples. Authentication remains a proposal.
-- Added pinned direct validation dependencies and executable contract checks to CI.
-- Local validation passed: OpenAPI specification, six response examples, empty
-  page and negative contract cases. GitHub run evidence belongs in the PR and #19.
-- Historical documentation acceptance in #18 must be distinguished from pending
-  Sprint 1 implementation acceptance. No issues are closed by this continuation.
+## Acceptance boundary
 
-## In Progress
+Sprint 1 is the API/data foundation, not a production release. Technical review is
+performed by Codex under the owner's explicit delegated instruction. #18 records
+the final scoped acceptance outcome after CI and merge; #19 tracks closure.
+Phase 1 Acceptance remains in QA until later epic delivery and release evidence.
 
-- #5 EPIC-001: Project setup and repository baseline
-- #19 SPRINT-01: Project setup, architecture skeleton, API/data foundations
+## Later release work
 
-## Ready for Execution
-
-- #6 EPIC-002: Architecture skeleton
-- #7 EPIC-003: API foundation
-- #8 EPIC-004: Data foundation
-- #16 EPIC-011: QA and acceptance framework
-
-## QA Control
-
-- #18 Acceptance Checklist
-
-## Next Actions
-
-1. Review and merge the contract continuation after GitHub CI succeeds.
-2. Resolve branch protection and reviewer policy: `main` protection API returned
-   `Branch not protected`; repository rulesets returned an empty list on 2026-09-05.
-3. Review runtime packaging, identity/tenant context and database/migration choices
-   through ADRs; no accepted runtime decision is inferred from these documents.
-4. Confirm capacity AC/DC basis and weather/forecast/audit retention rules.
-5. Implement endpoints and prove runtime tenant isolation and paging behavior.
-6. Record implementation-owner review evidence and acceptance in #18 before closing #19.
-
-There is no access blocker to this PR. The decisions and runtime evidence above
-remain blockers to Sprint 1 acceptance, not to documentation/contract work.
+Production hosting/TLS, identity-system provisioning and automated key rotation,
+backup restore drills, monitoring, forecast workers and retention purge jobs belong
+to subsequent deployment/domain work. No production service or automatic purge
+is created by Sprint 1. These are not unselected Sprint 1 architecture decisions.

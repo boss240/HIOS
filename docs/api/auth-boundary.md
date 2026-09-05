@@ -29,20 +29,19 @@ This document defines the initial authentication and authorization boundary for 
 - Protected endpoints must declare security requirements in OpenAPI.
 - Authorization failures should return the standard error model.
 - Audit-relevant actions must include actor, tenant, action, target, timestamp, and result.
-- Token/session mechanism remains an implementation decision.
+- Token transport is RS256 JWT under ADR-0001.
 
-## Open decisions
+## Deployment integration decisions
 
 - Identity provider.
-- Token/session model.
-- Tenant membership data model.
+- Identity-system integration and automated key rotation.
+- Additional membership administration workflows.
 - Fine-grained permission model.
 
-## Sprint 1 contract proposal
+## Sprint 1 implementation
 
-OpenAPI 0.2.0 declares HTTP bearer authentication for `/plants` and explicitly
-public liveness for `/health`. Bearer is a transport proposal, not a selected
-identity provider or token format. Resolve one authorized tenant from trusted
-authentication/membership context; do not trust a client tenant selector without
-membership checks. Missing/invalid identity returns 401; unresolved or forbidden
-tenant context returns 403. Runtime enforcement remains pending implementation.
+OpenAPI declares RS256 JWT authentication for `/plants` and public liveness for
+`/health`. Required signed claims are exp, iat, iss, aud and sub. A signed tenant_id
+and active PostgreSQL membership resolve one authorized tenant. Client selectors
+cannot override it. Missing/invalid identity returns 401; unresolved or forbidden
+tenant context returns 403. See [runtime setup](runtime.md) and ADR-0001.

@@ -29,7 +29,23 @@ This file is the Sprint 1 baseline for the HIOS implementation data model. It de
 - Public API payloads must not expose internal persistence identifiers unless intentionally documented.
 - Data quality checks must cover required fields, timestamp consistency, tenant isolation, and forecast traceability.
 
-## Open Decisions
+## Plant API mapping (Sprint 1 proposal)
+
+| Public field | Conceptual storage | Constraint |
+| --- | --- | --- |
+| `id` | Stable public plant identifier | Nonempty opaque string; not a database row number |
+| `name` | Plant display name | Nonempty string |
+| `capacityKw` | Optional installed capacity | Nonnegative number, kW; omitted when unknown |
+| Not exposed | `tenant_id` | Required ownership boundary for every plant |
+
+`capacityKw` retains the existing API field and unit. AC/DC rating basis must be
+settled before production ingestion; forecast power/energy units remain open.
+List queries filter by authorized tenant before pagination and order by stable
+public plant ID. Offset pagination does not promise a snapshot during concurrent
+writes. Enforce unique public IDs and tenant-safe relationships when selecting
+the database. Tenant selection is never inferred from a supplied plant ID alone.
+
+## Remaining decisions
 
 - Database engine and migration framework.
 - Canonical unit conventions for plant capacity and forecast generation.

@@ -32,3 +32,24 @@ Before requesting review:
 ## Documentation rule
 
 Implementation documents should prefer short, traceable files over long unstructured notes. Each document should identify the related HEDS source when applicable.
+
+## Sprint 1 execution and validation
+
+Start contractor work from current `main` on `feature/<issue-id>-<topic>`;
+the first continuation branch is `feature/19-sprint-1-contract-baseline`.
+Submit a PR with evidence and open decisions; do not close the sprint just because files exist.
+
+Use Python 3.11 in a virtual environment, then run:
+
+```sh
+python -m pip install -r requirements-ci.txt
+python -m openapi_spec_validator docs/api/openapi.yaml
+python scripts/check_api_contract.py
+```
+
+Both `Documentation baseline` and `Sprint 1 baseline files` must pass before merge.
+The latter also validates the API specification and contract examples.
+These checks do not certify a running service or tenant isolation implementation.
+On 2026-09-05, `main` had no branch protection and the repository had no rulesets.
+Required reviewer policy remains an owner decision; review is required by this
+document but is not currently enforced by GitHub.

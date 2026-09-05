@@ -1,62 +1,152 @@
 openapi: 3.1.0
 info:
   title: HIOS API
-  version: 0.1.0
-  description: Initial OpenAPI placeholder for HIOS Phase 1 API foundation.
+  version: 0.2.0
+  description: |
+    Sprint 1 contract proposal, not a deployed API. Bearer authentication and
+    tenant resolution require owner review. Paths remain unversioned.
 servers:
   - url: https://api.example.invalid
     description: Placeholder API endpoint
 paths:
   /health:
     get:
-      summary: Health check
+      summary: Process liveness
+      description: Reports liveness only; does not certify dependency readiness.
       operationId: getHealth
-      tags:
-        - system
+      tags: [system]
+      security: []
       responses:
         '200':
-          description: Service health status
+          description: Process is alive
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - status
-                properties:
-                  status:
-                    type: string
-                    enum:
-                      - ok
+                $ref: '#/components/schemas/Health'
+              example: {status: ok}
   /plants:
     get:
-      summary: List solar plants
+      summary: List solar plants in the authorized tenant
+      description: |
+        Resolve exactly one authorized tenant from authenticated context before
+        filtering and pagination. Missing or forbidden tenant context yields 403.
+        Tenant selection mechanism remains an implementation decision.
+        Sort by stable public plant ID ascending. Offset pagination does not
+        guarantee a snapshot while plants are added or removed.
       operationId: listPlants
-      tags:
-        - plants
+      tags: [plants]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of plants returned.
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+        - name: offset
+          in: query
+          description: Number of tenant-filtered plants to skip.
+          schema: {type: integer, minimum: 0, default: 0}
       responses:
         '200':
-          description: Plant list placeholder
+          description: Tenant-filtered page; data is empty when no records remain.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Plant'
+                $ref: '#/components/schemas/PlantList'
+              example:
+                data:
+                  - {id: plant-001, name: Solar One, capacityKw: 120.5}
+                limit: 50
+                offset: 0
+        '400':
+          description: Invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: {code: VALIDATION_ERROR, message: Invalid pagination parameters, requestId: req-001}
+        '401':
+          description: Missing or invalid authentication
+          headers:
+            WWW-Authenticate:
+              required: true
+              schema: {type: string}
+              example: Bearer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: {code: AUTH_REQUIRED, message: Authentication required, requestId: req-002}
+        '403':
+          description: Tenant context unresolved or access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: {code: ACCESS_DENIED, message: Access denied, requestId: req-003}
+        '500':
+          description: Unexpected failure; no internal details exposed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-004}
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Proposed transport; token format, provider and tenant resolution remain open.
   schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: {type: string, enum: [ok]}
     Plant:
       type: object
-      required:
-        - id
-        - name
+      additionalProperties: false
+      required: [id, name]
       properties:
         id:
           type: string
-        name:
-          type: string
+          minLength: 1
+          description: Stable opaque public identifier.
+        name: {type: string, minLength: 1}
         capacityKw:
           type: number
-          format: float
+          minimum: 0
+          description: Installed capacity in kW; omitted when unknown. AC/DC basis pending.
+    PlantList:
+      type: object
+      additionalProperties: false
+      required: [data, limit, offset]
+      properties:
+        data:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Plant'
+        limit: {type: integer, minimum: 1, maximum: 100}
+        offset: {type: integer, minimum: 0}
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code: {type: string, minLength: 1}
+            message: {type: string, minLength: 1}
+            requestId: {type: string, minLength: 1}
+            details:
+              type: object
+              description: Optional safe context; never include secrets or stack traces.

@@ -12,6 +12,12 @@ Date: YYYY-MM-DD
 Owner: TBD
 Related issue: #
 
+Decision evidence: PR/review URL (required before changing status to Accepted)
+Supersedes / superseded by: ADR link or None
+
+Allowed statuses: Proposed, Accepted, Rejected, Superseded. A merged template
+does not constitute an accepted runtime, database, or authentication decision.
+
 ## Context
 
 Describe the decision context, implementation constraints, HEDS source references, and assumptions that must stay visible to reviewers.
@@ -32,6 +38,9 @@ List expected benefits, tradeoffs, follow-up tasks, risks, and operational impac
 ## Acceptance Link
 
 Explain how the decision will be checked through Sprint, QA, or handover evidence.
+
+Include measurable verification, rollback/migration consequences, and the owner
+responsible for checking the decision. Link unresolved follow-up issues.
 
 ## References
 

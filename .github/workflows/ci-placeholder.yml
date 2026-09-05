@@ -1,5 +1,8 @@
 name: HIOS Sprint 1 Placeholder Checks
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
@@ -10,6 +13,7 @@ jobs:
   sprint-1-baseline:
     name: Sprint 1 baseline files
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,13 +21,28 @@ jobs:
       - name: Verify required Sprint 1 files
         shell: bash
         run: |
-          test -f CONTRIBUTING.md
-          test -f docs/architecture/ADR_TEMPLATE.md
-          test -f docs/architecture/system-context.md
-          test -f docs/architecture/service-boundaries.md
-          test -f docs/api/openapi.yaml
-          test -f docs/data/data-model-baseline.md
-          test -f docs/qa/acceptance-gates.md
+          test -s CONTRIBUTING.md
+          test -s docs/architecture/ADR_TEMPLATE.md
+          test -s docs/architecture/system-context.md
+          test -s docs/architecture/service-boundaries.md
+          test -s docs/api/openapi.yaml
+          test -s docs/data/data-model-baseline.md
+          test -s docs/qa/acceptance-gates.md
+          test -s .github/workflows/ci-placeholder.yml
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install contract validation tools
+        run: python -m pip install -r requirements-ci.txt
+
+      - name: Validate OpenAPI specification
+        run: python -m openapi_spec_validator docs/api/openapi.yaml
+
+      - name: Validate examples and contract constraints
+        run: python scripts/check_api_contract.py
 
       - name: Report baseline status
-        run: echo "HIOS Sprint 1 baseline files are present."
+        run: echo "Baseline and API contract checks passed; runtime acceptance remains pending."

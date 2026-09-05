@@ -29,7 +29,20 @@ This document defines the initial service boundaries for HIOS Phase 1. It is a w
 - Forecasting outputs must remain traceable to source weather input and model/version metadata.
 - Sensitive admin actions must create audit evidence.
 
-## Open decisions
+## First API slice
+
+| Contract | Boundary behavior | Required implementation evidence |
+| --- | --- | --- |
+| `GET /health` | API liveness, public, no dependency or secret details | Running-process response test |
+| `GET /plants` | Identity resolves tenant; registry filters before pagination | Cross-tenant denial and pagination tests |
+| Standard errors | API returns safe code, message and requestId | Invalid input, unauthenticated and forbidden cases |
+
+The contract uses proposed bearer authentication without fixing token format or
+provider. Missing/invalid identity yields 401; unresolved or forbidden tenant
+context yields 403. Database access must remain inside the owning boundary.
+The current CI validates documents and examples only; runtime evidence is pending.
+
+## Remaining decisions
 
 - Runtime packaging model: modular monolith, services, or hybrid.
 - Message/event infrastructure, if any.

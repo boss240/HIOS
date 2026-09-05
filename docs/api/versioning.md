@@ -23,6 +23,14 @@ The final URL strategy is not selected yet. Candidate approaches:
 
 Sprint 1 keeps paths unversioned in the placeholder until the product API boundary is confirmed.
 
+## Contract 0.2.0
+
+The first contract expansion adds explicit plant authentication, bounded
+limit/offset pagination, required response metadata and standard errors. Clients
+built against 0.1.0 must provide authorization and consume `data`, `limit` and
+`offset`; do not infer production compatibility from the earlier placeholder.
+No URL versioning or runtime deployment decision is implied.
+
 ## Compatibility expectations
 
 - API changes must be traceable to GitHub issues.

@@ -37,3 +37,12 @@ This document defines the initial authentication and authorization boundary for 
 - Token/session model.
 - Tenant membership data model.
 - Fine-grained permission model.
+
+## Sprint 1 contract proposal
+
+OpenAPI 0.2.0 declares HTTP bearer authentication for `/plants` and explicitly
+public liveness for `/health`. Bearer is a transport proposal, not a selected
+identity provider or token format. Resolve one authorized tenant from trusted
+authentication/membership context; do not trust a client tenant selector without
+membership checks. Missing/invalid identity returns 401; unresolved or forbidden
+tenant context returns 403. Runtime enforcement remains pending implementation.

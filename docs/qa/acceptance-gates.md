@@ -31,6 +31,8 @@ This file defines the implementation acceptance gates used to start and control 
 ## Gate 4: API and Data Foundation
 
 - [ ] OpenAPI placeholder exists and is reviewable.
+- [ ] OpenAPI validation and contract example checks pass for the reviewed commit.
+- [ ] Runtime tests prove authentication, tenant filtering and pagination before endpoint acceptance.
 - [ ] Data model baseline exists.
 - [ ] Schema conventions are documented.
 - [ ] Data quality checklist is documented.
@@ -43,6 +45,11 @@ This file defines the implementation acceptance gates used to start and control 
 - [ ] Open risks and decisions are recorded before handover.
 
 ## Sprint 1 Operating Status
+
+These checklists define gates, not evidence that they have passed. The historical
+documentation-baseline acceptance in #18 does not accept executable Sprint 1
+delivery. Record reviewer, date, commit, CI run, open decisions and explicit
+acceptance outcome in #18 before closing #19. See [current evidence](../../sprint-01/STATUS.md).
 
 - In Progress: EPIC-001, SPRINT-01
 - Ready: EPIC-002, EPIC-003, EPIC-004, EPIC-011

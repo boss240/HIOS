@@ -206,7 +206,7 @@ def test_real_http_server(db, keys):
         contract(response, "/health")
         response = httpx.get(url + "/plants", headers=headers(keys))
         assert response.status_code == 200
-        assert [p["id"] for p in response.json()["data"] == ["002", "004"]
+        assert [p["id"] for p in response.json()["data"]] == ["002", "004"]
         contract(response, "/plants")
     finally:
         server.should_exit = True

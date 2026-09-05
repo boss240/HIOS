@@ -3,8 +3,8 @@ info:
   title: HIOS API
   version: 0.2.0
   description: |
-    Sprint 1 contract proposal, not a deployed API. Bearer authentication and
-    tenant resolution require owner review. Paths remain unversioned.
+    Sprint 1 implementation contract. RS256 bearer JWT identifies one tenant;
+    active database membership is required. Paths remain unversioned.
 servers:
   - url: https://api.example.invalid
     description: Placeholder API endpoint
@@ -30,7 +30,7 @@ paths:
       description: |
         Resolve exactly one authorized tenant from authenticated context before
         filtering and pagination. Missing or forbidden tenant context yields 403.
-        Tenant selection mechanism remains an implementation decision.
+        tenant_id is a signed JWT claim and must match active database membership.
         Sort by stable public plant ID ascending. Offset pagination does not
         guarantee a snapshot while plants are added or removed.
       operationId: listPlants
@@ -45,7 +45,7 @@ paths:
         - name: offset
           in: query
           description: Number of tenant-filtered plants to skip.
-          schema: {type: integer, minimum: 0, default: 0}
+          schema: {type: integer, minimum: 0, maximum: 2147483647, default: 0}
       responses:
         '200':
           description: Tenant-filtered page; data is empty when no records remain.
@@ -100,7 +100,8 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Proposed transport; token format, provider and tenant resolution remain open.
+      bearerFormat: JWT
+      description: RS256 JWT with required exp, iat, iss, aud and sub; signed tenant_id plus active database membership. See ADR-0001.
   schemas:
     Health:
       type: object

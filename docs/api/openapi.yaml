@@ -1,153 +1,43 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: HIOS API
-  version: 0.3.0
-  description: |
-    Sprint 1 implementation contract. RS256 bearer JWT identifies one tenant;
-    active database membership is required. Paths remain unversioned.
+  version: 0.1.0
 servers:
-  - url: https://api.example.invalid
-    description: Placeholder API endpoint
+  - url: https://api.example.hios.local/v1
 paths:
   /health:
     get:
-      summary: Process liveness
-      description: Reports liveness only; does not certify dependency readiness.
-      operationId: getHealth
-      tags: [system]
-      security: []
+      summary: Health check
       responses:
         '200':
-          description: Process is alive
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Health'
-              example: {status: ok}
+          description: OK
   /plants:
     get:
-      summary: List solar plants in the authorized tenant
-      description: |
-        Resolve exactly one authorized tenant from authenticated context before
-        filtering and pagination. Missing or forbidden tenant context yields 403.
-        tenant_id is a signed JWT claim and must match active database membership.
-        Sort by stable public plant ID ascending. Offset pagination does not
-        guarantee a snapshot while plants are added or removed.
-      operationId: listPlants
-      tags: [plants]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: limit
-          in: query
-          description: Maximum number of plants returned.
-          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
-        - name: offset
-          in: query
-          description: Number of tenant-filtered plants to skip.
-          schema: {type: integer, minimum: 0, maximum: 2147483647, default: 0}
+      summary: List plants
       responses:
         '200':
-          description: Tenant-filtered page; data is empty when no records remain.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlantList'
-              example:
-                data:
-                  - {id: plant-001, name: Solar One, capacityKw: 120.5}
-                limit: 50
-                offset: 0
-        '400':
-          description: Invalid pagination parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: {code: VALIDATION_ERROR, message: Invalid pagination parameters, requestId: req-001}
-        '401':
-          description: Missing or invalid authentication
-          headers:
-            WWW-Authenticate:
-              required: true
-              schema: {type: string}
-              example: Bearer
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: {code: AUTH_REQUIRED, message: Authentication required, requestId: req-002}
-        '403':
-          description: Tenant context unresolved or access denied
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: {code: ACCESS_DENIED, message: Access denied, requestId: req-003}
-        '500':
-          description: Unexpected failure; no internal details exposed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              example:
-                error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-004}
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: RS256 JWT with required exp, iat, iss, aud and sub; signed tenant_id plus active database membership. See ADR-0001.
-  schemas:
-    Health:
-      type: object
-      additionalProperties: false
-      required: [status]
-      properties:
-        status: {type: string, enum: [ok]}
-    Plant:
-      type: object
-      additionalProperties: false
-      required: [id, name]
-      properties:
-        id:
-          type: string
-          minLength: 1
-          description: Stable opaque public identifier.
-        name: {type: string, minLength: 1}
-        capacityKw:
-          type: number
-          minimum: 0
-          description: Installed DC nameplate capacity in kW (kWp); omitted when unknown.
-    PlantList:
-      type: object
-      additionalProperties: false
-      required: [data, limit, offset]
-      properties:
-        data:
-          type: array
-          maxItems: 100
-          items:
-            $ref: '#/components/schemas/Plant'
-        limit: {type: integer, minimum: 1, maximum: 100}
-        offset: {type: integer, minimum: 0}
-    Error:
-      type: object
-      additionalProperties: false
-      required: [error]
-      properties:
-        error:
-          type: object
-          additionalProperties: false
-          required: [code, message, requestId]
-          properties:
-            code: {type: string, minLength: 1}
-            message: {type: string, minLength: 1}
-            requestId: {type: string, minLength: 1}
-            details:
-              type: object
-              description: Optional safe context; never include secrets or stack traces.
+          description: Plant list
+  /plants/{plantId}:
+    get:
+      summary: Get plant
+      parameters:
+        - in: path
+          name: plantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plant details
+  /plants/{plantId}/forecast:
+    get:
+      summary: Get plant forecast
+      parameters:
+        - in: path
+          name: plantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Forecast series

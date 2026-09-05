@@ -1,0 +1,25 @@
+{
+  "project": "HIOS by VH | henzitskyi.energy",
+  "package": "Sprint 1 Implementation Baseline",
+  "version": "0.1.0",
+  "target_repository": "boss240/HIOS",
+  "files": [
+    ".github/workflows/ci-placeholder.yml",
+    "CONTRIBUTING.md",
+    "SPRINT_01_README.md",
+    "docs/api/openapi.yaml",
+    "docs/architecture/ADR_TEMPLATE.md",
+    "docs/architecture/service-boundaries.md",
+    "docs/architecture/system-context.md",
+    "docs/data/data-model-baseline.md",
+    "docs/qa/acceptance-gates.md"
+  ],
+  "issue_scope": [
+    "EPIC-001",
+    "EPIC-002",
+    "EPIC-003",
+    "EPIC-004",
+    "EPIC-011",
+    "SPRINT-01"
+  ]
+}

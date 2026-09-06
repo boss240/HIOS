@@ -42,6 +42,12 @@ and no external request or credential is added by this step.
 The next S2-03 slice adds immutable tenant-safe normalized-weather snapshots with
 source reference and payload hash. It stores neither credentials nor raw payloads;
 the selected adapter must retain raw evidence according to the documented policy.
+The following S2-03 slice implements a provider-independent bounded retry and
+primary-to-secondary failover policy. It accepts injected adapters only, records
+attempt events for audit, honours a Retry-After delay only within the 30-second
+default budget, and fails closed for authentication/configuration/schema faults.
+It neither makes network calls nor serves stale weather. A selected, approved
+provider adapter and its credentials, quota and TTL configuration remain required.
 Source ZIPs retrieved through the cleaned Drive register and CRC-checked.
 Nine canonical ML files normalized/created; three legacy paths retained as aliases.
 Forecast worker, adapters, database additions and forecast endpoints are pending.

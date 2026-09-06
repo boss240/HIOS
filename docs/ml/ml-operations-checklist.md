@@ -38,6 +38,16 @@ Unchecked items are runtime gates, not evidence of completion.
 - [ ] Prevent unapproved model usage; audit deployment and retirement.
 - [ ] Require owner, reason, scope, approval and expiry for manual overrides.
 
+## Implemented scheduling primitives
+
+`app/forecast_schedule.py` calculates due origins on explicit UTC cadence and
+publication delay. Migration 0005 creates a tenant/plant/origin/horizon lease;
+only active members of the plant tenant can claim, renew or release it. A future
+worker must claim the lease before invoking the controlled forecast job and use a
+bounded TTL appropriate to the job deadline. This code does not start a scheduler,
+define production cadence/owners, provide distributed metrics or replace staging
+load/deadline evidence.
+
 ## Incident and rollback procedure
 
 1. Identify impacted tenants/plants, origins, model/input versions and last good run.

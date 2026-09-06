@@ -32,7 +32,7 @@ HEDS-023 acceptance_checks. [Source coverage](../../sprint-02/SOURCES.md).
 | S2-T05 | Solar night yields zero; AC clipping enforced separately from DC rating | HEDS-012 METH-002/005 | Unit |
 | S2-T06 | 429/timeout/5xx respect budget; circuit recovery and schema/auth failure tested | HEDS-011 FB-001/002, WPI-006 | Integration |
 | S2-T07 | Partial secondary fill keeps provenance; all-source outage blocks or uses bounded stale run | HEDS-011 FB-003/007 | Integration |
-| S2-T08 | Idempotent retry, concurrent jobs and failed persistence never duplicate/partially publish | HEDS-012 METH-010 | Database |
+| S2-T08 | Idempotent retry, concurrent jobs and failed persistence never duplicate/partially publish | HEDS-012 METH-010 | Database; idempotency and lease primitives covered, failed-persistence recovery remains |
 | S2-T09 | Forged tenant/foreign plant access, cross-tenant jobs and exports denied | HEDS-018 TESTTYP-008 | Security |
 | S2-T10 | Exact MAE/RMSE/bias; zero-N, low-output MAPE and coverage denominators | HEDS-012 ACC-001–009 | Evaluation |
 | S2-T11 | Unapproved model rejected; rollback preserves versions and feature compatibility | HEDS-010 DEP-001/004/005 | Release |

@@ -34,6 +34,11 @@ the expected denominator. Report normal, degraded, late and missing separately.
 A reused stale forecast is not a newly published on-time run. Zero expected jobs
 gives "not applicable". Freeze the scheduling/deadline definition before scoring.
 
+The implemented operational read model reports recorded worker outcomes and
+published-point counts for a tenant/plant UTC window. It intentionally does not
+present this as ACC-008 availability: expected scheduled runs and the deadline
+are unresolved operational decisions.
+
 ## Evaluation protocol and thresholds
 
 Report plant, horizon, provider, season/weather regime, sample period and model

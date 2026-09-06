@@ -27,7 +27,7 @@ Do not reopen or duplicate them. Duplicate EPIC-005 #9 stays closed; #10 is cano
 | S2-04 | Forward migrations and tenant-safe run persistence | Backend Lead | Migration 0002 plus tenant-safe, idempotent run and immutable point publication primitives; job orchestration remains |
 | S2-05 | MODEL-001 candidate and calibration | ML Engineer | Deterministic candidate, POA/solar-context feature assembly and immutable tenant/plant candidate registry implemented; S2-02 data, approval workflow, calibration and S2-T03–05/11 remain |
 | S2-06 | Evaluation and approved release thresholds | ML Engineer / QA Lead | Frozen split before candidate scoring; S2-T10/12 |
-| S2-07 | Scheduled worker, operational monitoring, staging demo and acceptance | SRE / QA / Product | Controlled worker wrapper, minimal outcomes, UTC schedule and tenant-safe lease primitives implemented; scheduler, monitoring, staging demo, S2-T13, rollback and sign-off remain |
+| S2-07 | Scheduled worker, operational monitoring, staging demo and acceptance | SRE / QA / Product | Controlled worker, minimal outcomes/read-only summary, UTC schedule and tenant-safe lease primitives implemented; scheduler, monitoring, staging demo, S2-T13, rollback and sign-off remain |
 
 Roles are proposed responsibilities; named assignees are not fabricated.
 Forecast API routes follow a separate tested contract addition after S2-04/05.

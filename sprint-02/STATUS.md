@@ -38,6 +38,10 @@ numeric accuracy claim.
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.
+
+The next S2-03 slice adds immutable tenant-safe normalized-weather snapshots with
+source reference and payload hash. It stores neither credentials nor raw payloads;
+the selected adapter must retain raw evidence according to the documented policy.
 Source ZIPs retrieved through the cleaned Drive register and CRC-checked.
 Nine canonical ML files normalized/created; three legacy paths retained as aliases.
 Forecast worker, adapters, database additions and forecast endpoints are pending.

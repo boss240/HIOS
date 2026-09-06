@@ -79,6 +79,10 @@ they never store provider payloads, credentials or exception messages. A real
 scheduler, retry/supervision policy, monitoring/alerts, named owner, staging load
 test and acceptance remain open.
 
+The follow-up read-only operational summary reports outcome counts and published
+point totals only within a tenant/plant UTC window. It does not calculate or
+claim availability because expected schedules and deadlines are still unapproved.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

@@ -22,6 +22,7 @@ from app.model_001 import Model001Config
 from app.feature_assembly import PlantGeometry
 from app.forecast_schedule import JobKey, ScheduleSpec, claim_lease, latest_due_origin, release_lease
 from app.forecast_worker import run_once
+from app.forecast_operations import summarize_outcomes
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
@@ -385,6 +386,10 @@ def test_worker_attempt_releases_lease_and_records_minimal_success_outcome(db):
             "succeeded", None
         )
         assert connection.execute("SELECT count(*) FROM forecast_job_lease").fetchone()[0] == 0
+    summary = summarize_outcomes(db, "alice", "a", "002", origin, origin + timedelta(days=1))
+    assert (summary.succeeded, summary.failed, summary.running, summary.published_points) == (1, 0, 0, 1)
+    with pytest.raises(PermissionError):
+        summarize_outcomes(db, "bob", "a", "002", origin, origin + timedelta(days=1))
 
 
 def weather_snapshot(snapshot_id, **changes):

@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from jsonschema import Draft202012Validator
 
 from app.main import create_app
 from app.migrate import migrate
+from app.forecast_store import ForecastRun, create_or_get_run
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
@@ -159,11 +161,52 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 1
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 2
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:
                 connection.execute("INSERT INTO plant VALUES ('bad','a','Bad',%s)", (value,))
+
+
+def forecast_run(run_id, **changes):
+    values = dict(
+        run_id=run_id, tenant_id="a", plant_id="002",
+        forecast_origin_utc=datetime.fromisoformat("2026-09-06T00:00:00+00:00"),
+        horizon_id="day_ahead", model_id="MODEL-001", model_version="0.1.0",
+        feature_version="features-1", input_hash="a" * 64,
+        configuration_hash="b" * 64, code_commit="abcdef1", status="normal",
+    )
+    values.update(changes)
+    return ForecastRun(**values)
+
+
+def test_forecast_run_is_idempotent_and_tenant_safe(db):
+    first = forecast_run(uuid4())
+    assert create_or_get_run(db, "alice", first) == first.run_id
+    retry = forecast_run(uuid4())
+    assert create_or_get_run(db, "alice", retry) == first.run_id
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT count(*) FROM forecast_run").fetchone()[0] == 1
+    with pytest.raises(PermissionError):
+        create_or_get_run(db, "bob", forecast_run(uuid4()))
+    with pytest.raises(PermissionError):
+        create_or_get_run(db, "alice", forecast_run(uuid4(), plant_id="001"))
+
+
+def test_forecast_storage_constraints(db):
+    run = forecast_run(uuid4())
+    create_or_get_run(db, "alice", run)
+    with psycopg.connect(db) as connection:
+        connection.execute("""INSERT INTO forecast_point(
+            run_id, interval_start_utc, interval_end_utc, predicted_power_kw,
+            predicted_energy_kwh) VALUES (%s, %s, %s, 10, 10)""",
+            (run.run_id, run.forecast_origin_utc, run.forecast_origin_utc.replace(hour=1)))
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with psycopg.connect(db) as connection:
+            connection.execute("""INSERT INTO forecast_point(
+                run_id, interval_start_utc, interval_end_utc, predicted_power_kw,
+                predicted_energy_kwh) VALUES (%s, %s, %s, -1, 0)""",
+                (run.run_id, run.forecast_origin_utc.replace(hour=1), run.forecast_origin_utc))
 
 
 def test_database_failure_is_safe_and_health_independent(keys):

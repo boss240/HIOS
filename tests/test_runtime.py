@@ -15,7 +15,7 @@ from jsonschema import Draft202012Validator
 
 from app.main import create_app
 from app.migrate import migrate
-from app.forecast_store import ForecastRun, create_or_get_run
+from app.forecast_store import ForecastPoint, ForecastRun, create_or_get_run, publish_points
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
@@ -209,6 +209,46 @@ def test_forecast_storage_constraints(db):
                 run_id, interval_start_utc, interval_end_utc, predicted_power_kw,
                 predicted_energy_kwh) VALUES (%s, %s, %s, -1, 0)""",
                 (run.run_id, run.forecast_origin_utc.replace(hour=1), run.forecast_origin_utc))
+
+
+def test_forecast_point_publication_is_idempotent_and_tenant_safe(db):
+    run = forecast_run(uuid4())
+    create_or_get_run(db, "alice", run)
+    point = ForecastPoint(
+        interval_start_utc=run.forecast_origin_utc,
+        interval_end_utc=run.forecast_origin_utc.replace(hour=1),
+        predicted_power_kw=10, predicted_energy_kwh=10,
+        quality_flags=("weather_degraded",), provider_provenance={"weather": "snapshot-1"},
+    )
+    assert publish_points(db, "alice", "a", run.run_id, (point,)) == 1
+    assert publish_points(db, "alice", "a", run.run_id, (point,)) == 0
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT quality_flags, provider_provenance FROM forecast_point").fetchone() == (
+            ["weather_degraded"], {"weather": "snapshot-1"}
+        )
+    with pytest.raises(PermissionError):
+        publish_points(db, "bob", "a", run.run_id, (point,))
+
+
+def test_forecast_point_publication_rejects_blocked_runs_and_invalid_batches(db):
+    blocked = forecast_run(uuid4(), status="blocked")
+    create_or_get_run(db, "alice", blocked)
+    point = ForecastPoint(
+        interval_start_utc=blocked.forecast_origin_utc,
+        interval_end_utc=blocked.forecast_origin_utc.replace(hour=1),
+        predicted_power_kw=0, predicted_energy_kwh=0,
+    )
+    with pytest.raises(PermissionError):
+        publish_points(db, "alice", "a", blocked.run_id, (point,))
+    with pytest.raises(ValueError, match="at least one"):
+        publish_points(db, "alice", "a", blocked.run_id, ())
+    invalid = ForecastPoint(
+        interval_start_utc=blocked.forecast_origin_utc,
+        interval_end_utc=blocked.forecast_origin_utc.replace(hour=1),
+        predicted_power_kw=-1, predicted_energy_kwh=0,
+    )
+    with pytest.raises(ValueError, match="finite non-negative"):
+        publish_points(db, "alice", "a", blocked.run_id, (invalid,))
 
 
 def weather_snapshot(snapshot_id, **changes):

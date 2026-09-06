@@ -1,9 +1,11 @@
 """Tenant-safe persistence primitives for forecast runs; no scheduler or provider client."""
 from dataclasses import dataclass
 from datetime import datetime
+import math
 from uuid import UUID
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,16 @@ class ForecastRun:
     configuration_hash: str
     code_commit: str
     status: str
+
+
+@dataclass(frozen=True)
+class ForecastPoint:
+    interval_start_utc: datetime
+    interval_end_utc: datetime
+    predicted_power_kw: float
+    predicted_energy_kwh: float
+    quality_flags: tuple[str, ...] = ()
+    provider_provenance: dict[str, str] | None = None
 
 
 def create_or_get_run(database_url: str, subject: str, run: ForecastRun) -> UUID:
@@ -69,3 +81,49 @@ def create_or_get_run(database_url: str, subject: str, run: ForecastRun) -> UUID
         if row is None:
             raise PermissionError("Active membership and tenant-owned plant are required")
         return row[0]
+
+
+def publish_points(database_url: str, subject: str, tenant_id: str, run_id: UUID,
+                   points: tuple[ForecastPoint, ...]) -> int:
+    """Publish an immutable, idempotent point batch for an owned runnable forecast.
+
+    There is no upsert: a retry can safely repeat the same intervals, while an
+    altered prediction requires a new versioned run. Blocked runs cannot publish
+    a stale result.
+    """
+    if not points:
+        raise ValueError("at least one forecast point is required")
+    values = []
+    for point in points:
+        if point.interval_start_utc.tzinfo is None or point.interval_end_utc.tzinfo is None:
+            raise ValueError("forecast point timestamps must be timezone-aware")
+        if point.interval_end_utc <= point.interval_start_utc:
+            raise ValueError("forecast point interval_end_utc must be after interval_start_utc")
+        for value, name in ((point.predicted_power_kw, "predicted_power_kw"),
+                            (point.predicted_energy_kwh, "predicted_energy_kwh")):
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be a finite non-negative number")
+        values.append((run_id, point.interval_start_utc, point.interval_end_utc,
+                       point.predicted_power_kw, point.predicted_energy_kwh,
+                       Jsonb(list(point.quality_flags)), Jsonb(point.provider_provenance or {})))
+    if len({value[1] for value in values}) != len(values):
+        raise ValueError("forecast point interval_start_utc values must be unique per batch")
+    with psycopg.connect(database_url, connect_timeout=5) as connection:
+        allowed = connection.execute(
+            """SELECT 1 FROM forecast_run r JOIN membership m ON m.tenant_id = r.tenant_id
+               WHERE r.run_id = %s AND r.tenant_id = %s AND m.subject = %s AND m.active
+                 AND r.status IN ('normal', 'degraded')""",
+            (run_id, tenant_id, subject),
+        ).fetchone()
+        if allowed is None:
+            raise PermissionError("Active membership and runnable tenant-owned forecast are required")
+        with connection.cursor() as cursor:
+            cursor.executemany(
+                """INSERT INTO forecast_point (
+                       run_id, interval_start_utc, interval_end_utc, predicted_power_kw,
+                       predicted_energy_kwh, quality_flags, provider_provenance
+                   ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT (run_id, interval_start_utc) DO NOTHING""",
+                values,
+            )
+            return cursor.rowcount

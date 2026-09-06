@@ -41,9 +41,12 @@ exception; never invent a rollback version.
 
 ## Storage and promotion gates
 
-Sprint 2 proposal: immutable object storage for artifacts/evaluation bundles and
-PostgreSQL metadata with tenant/scope controls, using the existing migration runner.
-No tables, bucket or registry service are created by this change. The initial
+Sprint 2 now implements immutable PostgreSQL candidate metadata per tenant/plant
+through migration 0004 and `app/model_registry.py`. An active tenant member can
+register a candidate exactly once; selecting a candidate returns only a recorded
+approved version for that tenant/plant. Candidate registration cannot mutate an
+existing version. Promotion, approval authorization, activation, artifact storage
+and rollback workflows remain separate gates. The initial
 `app/model_001.py` candidate uses explicit DC/AC capacities, a versioned
 performance ratio and temperature coefficient, plane-of-array irradiance, and
 validated solar elevation. It enforces an AC bound and reports night/clipping

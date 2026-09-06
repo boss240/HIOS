@@ -54,6 +54,12 @@ origin, and produces a zero POA feature only after calculated night context. The
 solar coefficients are a versioned candidate baseline, pending validation against
 an approved solar library and real plant data.
 
+The next S2-05 slice adds migration 0004 and immutable tenant/plant-scoped model
+candidate metadata. A candidate can be registered once by an active tenant member;
+resolution returns only an approved version in that scope. Promotion authorization,
+activation, artifact storage, rollback and calibration remain explicit separate
+workflows and are not inferred from candidate registration.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

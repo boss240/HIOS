@@ -16,6 +16,7 @@ from jsonschema import Draft202012Validator
 from app.main import create_app
 from app.migrate import migrate
 from app.forecast_store import ForecastPoint, ForecastRun, create_or_get_run, publish_points
+from app.model_registry import ModelCandidate, register_candidate, resolve_approved_candidate
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
@@ -163,7 +164,7 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 3
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 4
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:
@@ -249,6 +250,32 @@ def test_forecast_point_publication_rejects_blocked_runs_and_invalid_batches(db)
     )
     with pytest.raises(ValueError, match="finite non-negative"):
         publish_points(db, "alice", "a", blocked.run_id, (invalid,))
+
+
+def model_candidate(**changes):
+    values = dict(
+        tenant_id="a", plant_id="002", model_id="MODEL-001", model_version="0.1.0-candidate",
+        model_type="deterministic_physical", feature_schema_version="model-001-features-v1",
+        configuration_hash="d" * 64, code_commit="abcdef1",
+        training_dataset_ref="not-applicable-deterministic",
+    )
+    values.update(changes)
+    return ModelCandidate(**values)
+
+
+def test_model_candidate_registry_is_immutable_and_tenant_safe(db):
+    candidate = model_candidate()
+    assert register_candidate(db, "alice", candidate) is True
+    assert register_candidate(db, "alice", candidate) is False
+    with pytest.raises(PermissionError):
+        register_candidate(db, "bob", model_candidate())
+    with psycopg.connect(db) as connection:
+        connection.execute("""UPDATE model_registry SET state='approved', approved_by='reviewer',
+            approved_at=now(), decision_ref='decision-1' WHERE tenant_id='a' AND plant_id='002'""")
+    resolved = resolve_approved_candidate(db, "alice", "a", "002", "MODEL-001")
+    assert resolved.model_version == "0.1.0-candidate"
+    with pytest.raises(PermissionError):
+        resolve_approved_candidate(db, "bob", "a", "002", "MODEL-001")
 
 
 def weather_snapshot(snapshot_id, **changes):

@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -17,6 +17,9 @@ from app.main import create_app
 from app.migrate import migrate
 from app.forecast_store import ForecastPoint, ForecastRun, create_or_get_run, publish_points
 from app.model_registry import ModelCandidate, register_candidate, resolve_approved_candidate
+from app.forecast_job import ForecastWeatherInput, configuration_hash, execute_model_001, input_hash
+from app.model_001 import Model001Config
+from app.feature_assembly import PlantGeometry
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
@@ -276,6 +279,58 @@ def test_model_candidate_registry_is_immutable_and_tenant_safe(db):
     assert resolved.model_version == "0.1.0-candidate"
     with pytest.raises(PermissionError):
         resolve_approved_candidate(db, "bob", "a", "002", "MODEL-001")
+
+
+def test_model_001_job_binds_approved_lineage_and_publishes_idempotently(db):
+    geometry = PlantGeometry(50.45, 30.52, 30, 180)
+    config = Model001Config("0.1.0-candidate", 100, 80, 0.8, -0.004)
+    weather = normalize_weather(
+        provider="fixture", product="forecast", mapping_version="v1",
+        provider_issued_at=datetime(2026, 6, 21, 8, tzinfo=timezone.utc),
+        valid_at=datetime(2026, 6, 21, 9, tzinfo=timezone.utc),
+        interval_end=datetime(2026, 6, 21, 10, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 6, 21, 8, tzinfo=timezone.utc),
+        ghi=700, ghi_unit="W/m2", cloud_cover=20, cloud_cover_unit="%",
+        temperature=25, temperature_unit="C", dni=600, dhi=100,
+    )
+    inputs = (ForecastWeatherInput("snapshot-001", weather),)
+    candidate = model_candidate(configuration_hash=configuration_hash(config, geometry))
+    register_candidate(db, "alice", candidate)
+    with psycopg.connect(db) as connection:
+        connection.execute("""UPDATE model_registry SET state='approved', approved_by='reviewer',
+            approved_at=now(), decision_ref='decision-2' WHERE tenant_id='a' AND plant_id='002'""")
+    run = forecast_run(uuid4(), forecast_origin_utc=datetime(2026, 6, 21, 8, tzinfo=timezone.utc),
+                       input_hash=input_hash(inputs), configuration_hash=candidate.configuration_hash,
+                       feature_version="model-001-features-v1", model_version=config.model_version)
+    first = execute_model_001(database_url=db, subject="alice", run=run, config=config,
+                              geometry=geometry, weather_inputs=inputs)
+    second = execute_model_001(database_url=db, subject="alice", run=run, config=config,
+                               geometry=geometry, weather_inputs=inputs)
+    assert first.run_id == run.run_id and first.published_points == 1
+    assert second.run_id == run.run_id and second.published_points == 0
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT count(*) FROM forecast_point WHERE run_id=%s", (run.run_id,)).fetchone()[0] == 1
+
+
+def test_model_001_job_rejects_unapproved_or_changed_lineage(db):
+    geometry = PlantGeometry(50.45, 30.52, 30, 180)
+    config = Model001Config("0.1.0-candidate", 100, 80, 0.8, -0.004)
+    weather = normalize_weather(
+        provider="fixture", product="forecast", mapping_version="v1",
+        provider_issued_at=datetime(2026, 6, 21, 8, tzinfo=timezone.utc),
+        valid_at=datetime(2026, 6, 21, 9, tzinfo=timezone.utc),
+        interval_end=datetime(2026, 6, 21, 10, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 6, 21, 8, tzinfo=timezone.utc),
+        ghi=700, ghi_unit="W/m2", cloud_cover=20, cloud_cover_unit="%",
+        temperature=25, temperature_unit="C", dni=600, dhi=100,
+    )
+    inputs = (ForecastWeatherInput("snapshot-001", weather),)
+    run = forecast_run(uuid4(), forecast_origin_utc=datetime(2026, 6, 21, 8, tzinfo=timezone.utc),
+                       input_hash=input_hash(inputs), configuration_hash=configuration_hash(config, geometry),
+                       feature_version="model-001-features-v1", model_version=config.model_version)
+    with pytest.raises(PermissionError, match="No approved"):
+        execute_model_001(database_url=db, subject="alice", run=run, config=config,
+                          geometry=geometry, weather_inputs=inputs)
 
 
 def weather_snapshot(snapshot_id, **changes):

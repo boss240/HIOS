@@ -38,6 +38,16 @@ validated replacement for an approved solar library. Feature persistence,
 snapshot selection, effective plant-metadata versioning and scientific
 validation/calibration remain open before activation.
 
+## Controlled candidate job
+
+`app/forecast_job.py` is an in-process orchestration primitive. It resolves an
+approved MODEL-001 candidate in the tenant/plant scope, independently hashes the
+complete model/geometry configuration and normalized weather/source references,
+then requires those hashes plus model, feature and code versions to match the
+forecast run. It forms every feature/output before creating the run and publishes
+idempotent points only afterward. A scheduler, credentials, API route, parallel
+job locking and production activation remain outside this primitive.
+
 ## Feature coverage
 
 FEAT-001–004: normalized irradiance, cloud, temperature and wind.

@@ -386,10 +386,12 @@ def test_worker_attempt_releases_lease_and_records_minimal_success_outcome(db):
             "succeeded", None
         )
         assert connection.execute("SELECT count(*) FROM forecast_job_lease").fetchone()[0] == 0
-    summary = summarize_outcomes(db, "alice", "a", "002", origin, origin + timedelta(days=1))
+    outcome_window_end = datetime.now(timezone.utc) + timedelta(minutes=1)
+    outcome_window_start = outcome_window_end - timedelta(days=1)
+    summary = summarize_outcomes(db, "alice", "a", "002", outcome_window_start, outcome_window_end)
     assert (summary.succeeded, summary.failed, summary.running, summary.published_points) == (1, 0, 0, 1)
     with pytest.raises(PermissionError):
-        summarize_outcomes(db, "bob", "a", "002", origin, origin + timedelta(days=1))
+        summarize_outcomes(db, "bob", "a", "002", outcome_window_start, outcome_window_end)
 
 
 def weather_snapshot(snapshot_id, **changes):

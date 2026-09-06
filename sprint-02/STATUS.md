@@ -35,6 +35,11 @@ It adds forward migration 0002 and a membership/plant-checked, idempotent foreca
 run store. It does not add a worker, forecast API route, actuals/weather ingest or
 numeric accuracy claim.
 
+S2-04 next adds immutable, tenant-checked forecast-point publication for normal or
+degraded versioned runs. Duplicate interval retries are ignored; changed predictions
+must use a new run, and blocked runs cannot publish stale output. Scheduler and
+worker orchestration remain pending.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

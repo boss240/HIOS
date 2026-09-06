@@ -24,7 +24,7 @@ Do not reopen or duplicate them. Duplicate EPIC-005 #9 stays closed; #10 is cano
 | S2-01 | Source mapping, contracts, decisions, CI baseline | Engineering / QA | This PR; source hashes and green CI |
 | S2-02 | Real plant/actual sample and archived as-issued weather; measurement contract | Data Engineer / Product | Provider rights, AC/DC/coordinates/timezone and actuals |
 | S2-03 | Weather adapter, normalization and bounded failover | Data Engineer | Normalizer, tenant-safe snapshot persistence and bounded primary-to-secondary policy implemented; vendor adapter, credentials/quotas/TTL and S2-T06–07 remain |
-| S2-04 | Forward migrations and tenant-safe run persistence | Backend Lead | Migration 0002 and store primitive; point publication/job tests still pending |
+| S2-04 | Forward migrations and tenant-safe run persistence | Backend Lead | Migration 0002 plus tenant-safe, idempotent run and immutable point publication primitives; job orchestration remains |
 | S2-05 | MODEL-001 candidate and calibration | ML Engineer | S2-02/03/04; immutable registry, S2-T03–05/11 |
 | S2-06 | Evaluation and approved release thresholds | ML Engineer / QA Lead | Frozen split before candidate scoring; S2-T10/12 |
 | S2-07 | Scheduled worker, operational monitoring, staging demo and acceptance | SRE / QA / Product | S2-03–06; S2-T13, rollback and sign-off |

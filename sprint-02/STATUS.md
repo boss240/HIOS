@@ -47,6 +47,13 @@ solar context, clips output to the AC bound and flags night/clipping. It has no
 solar-position engine, feature assembly, calibration, model registry artifact or
 production activation; those remain gated by real metadata, weather and actuals.
 
+The following S2-05 slice adds `model-001-features-v1`: an as-of-safe candidate
+feature assembly with explicit plant geometry and an isotropic DNI/DHI/GHI to
+POA conversion. It rejects absent DNI/DHI and weather unavailable at the forecast
+origin, and produces a zero POA feature only after calculated night context. The
+solar coefficients are a versioned candidate baseline, pending validation against
+an approved solar library and real plant data.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

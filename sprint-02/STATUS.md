@@ -72,6 +72,13 @@ tenant members can operate a lease, which prevents a concurrent worker from
 running the same logical origin. No process is scheduled or started; owner,
 cadence, monitoring, lock TTL, staging load evidence and acceptance remain open.
 
+The controlled worker wrapper now claims/releases the lease around a single
+MODEL-001 job and writes minimal auditable `running`, `succeeded` or `failed`
+outcomes in migration 0006. Failure records contain only the exception class;
+they never store provider payloads, credentials or exception messages. A real
+scheduler, retry/supervision policy, monitoring/alerts, named owner, staging load
+test and acceptance remain open.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

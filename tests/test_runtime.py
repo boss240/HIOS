@@ -21,6 +21,7 @@ from app.forecast_job import ForecastWeatherInput, configuration_hash, execute_m
 from app.model_001 import Model001Config
 from app.feature_assembly import PlantGeometry
 from app.forecast_schedule import JobKey, ScheduleSpec, claim_lease, latest_due_origin, release_lease
+from app.forecast_worker import run_once
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
@@ -168,7 +169,7 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 5
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 6
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:
@@ -354,6 +355,36 @@ def test_forecast_job_lease_is_scoped_renewable_and_releasable(db):
     assert release_lease(db, "alice", key, second) is False
     assert release_lease(db, "alice", key, first) is True
     assert claim_lease(db, "alice", key, second) is True
+
+
+def test_worker_attempt_releases_lease_and_records_minimal_success_outcome(db):
+    geometry = PlantGeometry(50.45, 30.52, 30, 180)
+    config = Model001Config("0.1.0-candidate", 100, 80, 0.8, -0.004)
+    origin = datetime(2026, 6, 21, 8, tzinfo=timezone.utc)
+    weather = normalize_weather(
+        provider="fixture", product="forecast", mapping_version="v1", provider_issued_at=origin,
+        valid_at=origin.replace(hour=9), interval_end=origin.replace(hour=10), retrieved_at=origin,
+        ghi=700, ghi_unit="W/m2", cloud_cover=20, cloud_cover_unit="%", temperature=25,
+        temperature_unit="C", dni=600, dhi=100,
+    )
+    inputs = (ForecastWeatherInput("snapshot-001", weather),)
+    candidate = model_candidate(configuration_hash=configuration_hash(config, geometry))
+    register_candidate(db, "alice", candidate)
+    with psycopg.connect(db) as connection:
+        connection.execute("""UPDATE model_registry SET state='approved', approved_by='reviewer',
+            approved_at=now(), decision_ref='decision-worker' WHERE tenant_id='a' AND plant_id='002'""")
+    run = forecast_run(uuid4(), forecast_origin_utc=origin, input_hash=input_hash(inputs),
+                       configuration_hash=candidate.configuration_hash, feature_version="model-001-features-v1",
+                       model_version=config.model_version)
+    key = JobKey("a", "002", origin, "day_ahead")
+    attempt = run_once(database_url=db, subject="alice", key=key, lease_id=uuid4(), run=run,
+                       config=config, geometry=geometry, weather_inputs=inputs)
+    assert attempt.status == "succeeded" and attempt.run_id == run.run_id and attempt.published_points == 1
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT status, error_class FROM forecast_job_outcome").fetchone() == (
+            "succeeded", None
+        )
+        assert connection.execute("SELECT count(*) FROM forecast_job_lease").fetchone()[0] == 0
 
 
 def weather_snapshot(snapshot_id, **changes):

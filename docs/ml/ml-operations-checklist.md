@@ -48,6 +48,16 @@ bounded TTL appropriate to the job deadline. This code does not start a schedule
 define production cadence/owners, provide distributed metrics or replace staging
 load/deadline evidence.
 
+## Implemented controlled worker wrapper
+
+`app/forecast_worker.py` wraps one invocation of the controlled MODEL-001 job.
+It claims a lease, writes a minimal `running` outcome, executes the job, records
+only `succeeded`/`failed`, run ID, point count or exception class, and releases
+the lease in `finally`. It intentionally stores no provider payload, credential
+or exception message. A non-holder returns `not_acquired` and does not create a
+second outcome. Worker supervision, retries, monitoring, alert routing and a
+production scheduler remain separate operational work.
+
 ## Incident and rollback procedure
 
 1. Identify impacted tenants/plants, origins, model/input versions and last good run.

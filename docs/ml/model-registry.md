@@ -7,7 +7,7 @@ AUD-ML-001–012. [Source coverage](../../sprint-02/SOURCES.md).
 
 | Source ID | Role | Current implementation status |
 | --- | --- | --- |
-| MODEL-001 | Physical/statistical baseline and benchmark | Proposed; no artifact or active version |
+| MODEL-001 | Physical/statistical baseline and benchmark | Deterministic untrained candidate implemented; no artifact, calibration or active version |
 | MODEL-002 / MODEL-004 | Recent-error correction / plant calibration | Planned after actuals |
 | MODEL-003 | Provider ensemble | Deferred; explicit routing first |
 | MODEL-005 | Regional model | Deferred |
@@ -43,7 +43,12 @@ exception; never invent a rollback version.
 
 Sprint 2 proposal: immutable object storage for artifacts/evaluation bundles and
 PostgreSQL metadata with tenant/scope controls, using the existing migration runner.
-No tables, bucket or registry service are created by this change.
+No tables, bucket or registry service are created by this change. The initial
+`app/model_001.py` candidate uses explicit DC/AC capacities, a versioned
+performance ratio and temperature coefficient, plane-of-array irradiance, and
+validated solar elevation. It enforces an AC bound and reports night/clipping
+flags; it does not select features, calculate solar position, train, calibrate
+or become active without the registry/promotion evidence above.
 
 Promotion requires [validation](forecast-validation.md), [acceptance](../../sprint-02/ACCEPTANCE.md),
 known-issue review and operational ownership. Pin all code/config/feature/input

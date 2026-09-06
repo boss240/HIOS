@@ -60,6 +60,12 @@ resolution returns only an approved version in that scope. Promotion authorizati
 activation, artifact storage, rollback and calibration remain explicit separate
 workflows and are not inferred from candidate registration.
 
+The next slice adds a controlled in-process MODEL-001 job. It resolves an
+approved tenant/plant candidate, verifies model/configuration/input/code lineage,
+builds all points before creating a run and publishes idempotently thereafter.
+There is still no scheduler, network client, API route, job lock, live provider
+configuration, production activation or acceptance claim.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

@@ -1,0 +1,65 @@
+{
+  "register_url": "https://docs.google.com/spreadsheets/d/1ekOVVJ7A2GKRv3brOceDAFcL5Un3CChS/edit",
+  "documents": [
+    {
+      "document_id": "HEDS-010",
+      "version": "v0.1.0-UA",
+      "url": "https://drive.google.com/file/d/1cLxLFzNjOoiSGyABuKYUILDMQjwG1eMk/view",
+      "archive": "HIOS_HEDS_010_v0.1.0_UA_package.zip",
+      "archive_sha256": "e31a7af5e5c46073c54b97c9462bfb8ffce5a5cf5ad04d376aec879fb21ecb73",
+      "markdown_entry": "releases/md/HEDS-010-ML-AI-Operations-Manual-v0.1.0-UA.md",
+      "markdown_sha256": "a6da63201bbf6f3352dc57c372488abc9d4fa2d10c7e93ffa995a078e10644b6",
+      "reviewed": "2026-09-06"
+    },
+    {
+      "document_id": "HEDS-011",
+      "version": "v0.1.0-UA",
+      "url": "https://drive.google.com/file/d/1QnJ3KWQzQkknC1KdCK-LHRm4xEaqbVFk/view",
+      "archive": "HIOS_HEDS_011_v0.1.0_UA_package.zip",
+      "archive_sha256": "4821bb45098857815cdf7ba910d8592d368e4a4785f9608a0982bda9666654a9",
+      "markdown_entry": "releases/md/HEDS-011-Weather-Data-Provider-Integration-Manual-v0.1.0-UA.md",
+      "markdown_sha256": "877fb4438334889ab4d63807f18b928b4cf2fc7cecd8f79f35cc01c5b2fcb067",
+      "reviewed": "2026-09-06"
+    },
+    {
+      "document_id": "HEDS-012",
+      "version": "v0.1.0-UA",
+      "url": "https://drive.google.com/file/d/1hMsQLLaza6qFRiLrDqw09Zvcvr3b85Zf/view",
+      "archive": "HIOS_HEDS_012_v0.1.0_UA_package.zip",
+      "archive_sha256": "857abf4b7fb2641cb559998de2434b99431c67d360fd919be50b591aa2ea98c7",
+      "markdown_entry": "releases/md/HEDS-012-Solar-PV-Forecasting-Methodology-v0.1.0-UA.md",
+      "markdown_sha256": "dae5e4dca193e75fdc12ae7ee07cd0011c45e485550ea213777f2516e604f883",
+      "reviewed": "2026-09-06"
+    },
+    {
+      "document_id": "HEDS-018",
+      "version": "v0.1.0-UA",
+      "url": "https://drive.google.com/file/d/1sY4crqNpmUHLkhCM1gu_m_1yVnce4tqh/view",
+      "archive": "HIOS_HEDS_018_v0.1.0_UA_package.zip",
+      "archive_sha256": "d6d4582b7401f59f96dd1a7ad9e7b522108fccb6dd7fe97be63b84e4334e99da",
+      "markdown_entry": "releases/md/HEDS-018-QA-and-Test-Strategy-v0.1.0-UA.md",
+      "markdown_sha256": "6d02808070670f38cf73ee6646b6b9c02f78e646448b9e5d7432a9ebe80a92de",
+      "reviewed": "2026-09-06"
+    },
+    {
+      "document_id": "HEDS-022",
+      "version": "v0.1.0-UA",
+      "url": "https://drive.google.com/file/d/1wLi07DkFpQjsS2Js4izRZPmmsE1gq2Lh/view",
+      "archive": "HIOS_HEDS_022_v0.1.0_UA_package.zip",
+      "archive_sha256": "f304635634f5a5743d37861f626c1dec7b6e3871f1e2aa3f64dacd40697dee69",
+      "markdown_entry": "releases/md/HEDS-022-Contractor-Implementation-Plan-v0.1.0-UA.md",
+      "markdown_sha256": "22eea201629a50742440de3c1e228b8e3bbd53f24e7c7c14ad9f2dcbbc951aa6",
+      "reviewed": "2026-09-06"
+    },
+    {
+      "document_id": "HEDS-023",
+      "version": "v0.1.0-UA",
+      "url": "https://drive.google.com/file/d/1AoeY5rlW9Pd7d0Yx9263TaOMYWRRD6eZ/view",
+      "archive": "HIOS_HEDS_023_v0.1.0_UA_package.zip",
+      "archive_sha256": "d7b9d0537dba788e62b6919a15408da1108e35653daa6abd6ba559a8ef313b3c",
+      "markdown_entry": "releases/md/HEDS-023-Technical-Acceptance-and-Handover-Manual-v0.1.0-UA.md",
+      "markdown_sha256": "54b5768cf14529281a563a360baff9ff75079fd3e899e9bbac0ee1ee1687b7df",
+      "reviewed": "2026-09-06"
+    }
+  ]
+}

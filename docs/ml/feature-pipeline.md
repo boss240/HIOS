@@ -1,42 +1,61 @@
-# Feature Pipeline Skeleton
+# Feature pipeline
 
-Related issue: #10  
-Source: HEDS-010 ML / AI Operations Manual and HEDS-012 Solar PV Forecasting Methodology
+Related issue: #10. Sources: HEDS-010 MLOP-001–012, FEAT-001–014;
+HEDS-011 NORM-001–010; HEDS-012 METH-001–012.
+[Source coverage](../../sprint-02/SOURCES.md).
 
-## Purpose
+## Proposed stages and contracts
 
-This document defines the first feature pipeline skeleton for HIOS solar PV forecasting.
-
-## Pipeline stages
-
-| Stage | Description | Phase 1 output |
+| Stage | Required behavior | Output / owner |
 | --- | --- | --- |
-| Source retrieval | Collect weather, plant, and historical production inputs. | Provider assumptions documented. |
-| Normalization | Convert provider and plant data into internal units and structures. | Normalization requirements documented. |
-| Validation | Check missing values, stale inputs, and range anomalies. | QA checklist references. |
-| Feature construction | Build time, weather, plant, and historical generation features. | Candidate feature groups listed. |
-| Forecast execution | Run baseline or model forecast. | Model registry placeholder. |
-| Post-processing | Apply bounds, units, confidence, and output metadata. | Output expectations documented. |
-| Persistence | Store forecast outputs and traceability metadata. | Data ownership and schema conventions linked. |
+| Resolve asset | Validate tenant ownership and effective plant version | Plant snapshot; Backend/Data |
+| Retrieve weather | Bounded requests; record issue and retrieval times | Immutable payload; Data Ops |
+| Normalize | Explicit units, UTC, intervals, provider mapping | Weather snapshot; Data Engineering |
+| Validate readiness | Finite/range checks, coverage, TTL and metadata | Ready/degraded/blocked with reasons |
+| Build features | Time-safe joins; feature schema version | Immutable feature bundle; ML Engineering |
+| Run baseline | Pin registry/config/code versions | Candidate output; ML Engineering |
+| Postprocess | AC bounds, solar-night rules, quality/provenance | Validated points |
+| Persist/publish | Atomic run/points; tenant-bound idempotency | Run record; Backend |
+| Evaluate | Align observed actuals by measurement boundary/interval | Quality report; ML Ops |
 
-## Candidate feature groups
+Batch execution is the first proposal within the existing Python modular monolith.
+No separate feature-store service or streaming platform is needed for the first
+slice. A scheduler and worker remain to be implemented with bounded concurrency.
 
-- Time features: hour, date, local timezone, forecast horizon.
-- Solar context: sunrise/sunset context, daylight flag, seasonal position proxies.
-- Plant metadata: capacity, location, orientation/tilt when available.
-- Weather: irradiance, cloud cover, temperature, wind, humidity.
-- Historical production: recent measured generation, availability/outage flags where available.
+## Feature coverage
 
-## Validation requirements
+FEAT-001–004: normalized irradiance, cloud, temperature and wind.
+FEAT-005–007: separate DC and AC capacity, coordinates, orientation/tilt.
+FEAT-008: lagged actuals; FEAT-009–010: local time and season derived from UTC
+plus IANA timezone. FEAT-011 special calendar days is deferred.
+FEAT-012 provider quality, FEAT-013 recent errors and FEAT-014 missing flags
+carry their own availability timestamp and schema version.
 
-- Weather data must include provider/source metadata.
-- Forecast generation must fail visibly or enter degraded mode when required inputs are missing.
-- Units must be explicit.
-- Forecast horizon must be explicit.
+## Prevent leakage and incorrect alignment
 
-## Open decisions
+For operational replay, both source issue/event time and availability/ingestion
+time must be <= forecast_origin_utc. Select the latest eligible provider version,
+not the latest version available today. Actuals, corrections, metadata revisions,
+quality scores and lag features obey the same as-of rule.
+Fit normalization/calibration only on the training split. Archive forecasts as
+issued; reanalysis can support research but cannot prove live forecast accuracy.
 
-- Feature store requirement.
-- Batch vs streaming execution.
-- Schedule frequency.
-- Historical production availability.
+Store intervals as [start,end) UTC with explicit average-power or interval-energy
+semantics. Derive local display/calendar features using the plant timezone,
+including repeated/missing DST hours. Align actuals only after resolving meter
+units, duration, duplicates, revisions, outages and curtailment. Missing != zero.
+
+## Persistence and security proposal
+
+Logical key: tenant + plant + origin + horizon + model version + input/config hash.
+Retries return the same completed run; changed inputs create a new revision.
+Persist run and points atomically; failed runs cannot replace the latest usable
+forecast. Retain source issue/retrieval times and per-point fallback provenance.
+
+The existing database creates only tenants, memberships and plants. New forecast,
+weather, actuals and metadata tables require forward migrations with composite
+tenant ownership constraints. Every read/write/job must verify tenant/plant scope;
+never accept an arbitrary client tenant override. Add two-tenant read/write/replay
+tests before enabling ingestion or publication. See
+[ADR-0001](../architecture/adr/0001-sprint-1-runtime.md) and
+[retention](../data/retention-policy.md).

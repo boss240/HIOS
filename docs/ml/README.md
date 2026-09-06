@@ -1,29 +1,33 @@
-# ML and Forecasting Foundation
+# ML and forecasting — Sprint 2
 
-Related issue: #10  
-Source: HEDS-010 ML / AI Operations Manual, HEDS-011 Weather Data Provider Integration Manual, HEDS-012 Solar PV Forecasting Methodology
+Related issue: #10 (EPIC-005); milestone: M3 Forecasting MVP.
+Sources: HEDS-010, HEDS-011, HEDS-012, HEDS-018, HEDS-022, HEDS-023,
+v0.1.0-UA. See [source evidence and coverage](../../sprint-02/SOURCES.md).
 
-## Purpose
+Status: implementation specification for review. This package starts Sprint 2;
+it does not deliver a forecast worker, trained model, weather adapter or new HTTP endpoint.
+Sprint 1's implemented API, database, authentication and migrations are reused.
 
-This folder captures the initial ML and solar PV forecasting foundation for HIOS Phase 1.
+## Canonical documents
 
-## Current files
+- [Forecasting methodology](forecasting-methodology.md): target, horizons, bounds and limitations.
+- [Weather provider assumptions](weather-provider-assumptions.md): roles, fields, provenance and decisions.
+- [Model registry](model-registry.md): immutable versions, lifecycle and promotion.
+- [Feature pipeline](feature-pipeline.md): time-safe inputs and tenant boundaries.
+- [Quality metrics](quality-metrics.md): denominators, segments and release criteria.
+- [ML operations checklist](ml-operations-checklist.md): monitoring, rollback and ownership.
+- [Provider failover](provider-failover.md): outage, quota, staleness and recovery.
+- [Forecast validation](forecast-validation.md): reproducible evaluation and test cases.
+- [Sprint plan](../../sprint-02/README.md), [acceptance](../../sprint-02/ACCEPTANCE.md)
+  and [status](../../sprint-02/STATUS.md).
 
-- `forecasting-methodology.md`: baseline forecasting method and assumptions.
-- `weather-provider-integration.md`: provider integration assumptions and source metadata.
-- `model-registry.md`: model registry placeholder.
-- `feature-pipeline.md`: feature pipeline skeleton.
-- `ml-ops-checklist.md`: operational checklist for ML/forecasting work.
-- `forecast-quality-qa.md`: QA criteria for forecast quality.
+Legacy paths remain as navigation aliases, avoiding two competing specifications:
+[weather integration](weather-provider-integration.md),
+[ML ops](ml-ops-checklist.md), [forecast QA](forecast-quality-qa.md).
 
-## Initial scope
+## Decision boundary
 
-The Phase 1 forecasting foundation is documentation-first. It defines traceability, quality gates, provider assumptions, and model lifecycle placeholders before production forecasting code is introduced.
-
-## Open decisions
-
-- Weather provider selection.
-- Forecast model family and baseline algorithm.
-- Training/evaluation data sources.
-- Runtime scheduling and worker platform.
-- Forecast quality thresholds for release acceptance.
+HEDS source requirements are cited by document and item ID. Choices explicitly
+marked "Sprint 2 proposal" are implementation proposals, not source mandates.
+Provider roles in HEDS are generic: no supplier or commercial agreement is selected.
+No accuracy, confidence calibration, operational SLA or final acceptance is claimed.

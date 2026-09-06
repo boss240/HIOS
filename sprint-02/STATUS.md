@@ -29,6 +29,11 @@ documentation check runs on PRs/main but is not yet a required protection check.
 Project 3: canonical #10 moved Backlog -> In Progress on 2026-09-06.
 Sprint tracking #22 was created after checking for duplicates and added to
 Project 3 as In Progress under M3 Forecasting MVP.
+
+After PR #23 was merged, branch `feature/22-forecast-persistence` began S2-04.
+It adds forward migration 0002 and a membership/plant-checked, idempotent forecast
+run store. It does not add a worker, forecast API route, actuals/weather ingest or
+numeric accuracy claim.
 Source ZIPs retrieved through the cleaned Drive register and CRC-checked.
 Nine canonical ML files normalized/created; three legacy paths retained as aliases.
 Forecast worker, adapters, database additions and forecast endpoints are pending.

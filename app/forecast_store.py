@@ -1,0 +1,71 @@
+"""Tenant-safe persistence primitives for forecast runs; no scheduler or provider client."""
+from dataclasses import dataclass
+from datetime import datetime
+from uuid import UUID
+
+import psycopg
+
+
+@dataclass(frozen=True)
+class ForecastRun:
+    run_id: UUID
+    tenant_id: str
+    plant_id: str
+    forecast_origin_utc: datetime
+    horizon_id: str
+    model_id: str
+    model_version: str
+    feature_version: str
+    input_hash: str
+    configuration_hash: str
+    code_commit: str
+    status: str
+
+
+def create_or_get_run(database_url: str, subject: str, run: ForecastRun) -> UUID:
+    """Create a logical run once, requiring active membership and tenant-owned plant.
+
+    A retry returns the original run ID only when its signed caller still has active
+    membership. The unique logical key intentionally excludes generated run_id.
+    """
+    if run.forecast_origin_utc.tzinfo is None:
+        raise ValueError("forecast_origin_utc must be timezone-aware")
+    with psycopg.connect(database_url, connect_timeout=5) as connection:
+        row = connection.execute(
+            """WITH allowed AS (
+                    SELECT 1 FROM membership
+                    WHERE tenant_id = %s AND subject = %s AND active
+                ), owned_plant AS (
+                    SELECT 1 FROM plant
+                    WHERE tenant_id = %s AND public_id = %s
+                      AND EXISTS (SELECT 1 FROM allowed)
+                ), inserted AS (
+                    INSERT INTO forecast_run (
+                        run_id, tenant_id, plant_id, forecast_origin_utc, horizon_id,
+                        model_id, model_version, feature_version, input_hash,
+                        configuration_hash, code_commit, status
+                    )
+                    SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    FROM owned_plant
+                    ON CONFLICT (tenant_id, plant_id, forecast_origin_utc, horizon_id,
+                                 model_id, model_version, input_hash) DO NOTHING
+                    RETURNING run_id
+                )
+                SELECT run_id FROM inserted
+                UNION ALL
+                SELECT r.run_id FROM forecast_run r
+                WHERE r.tenant_id = %s AND r.plant_id = %s
+                  AND r.forecast_origin_utc = %s AND r.horizon_id = %s
+                  AND r.model_id = %s AND r.model_version = %s AND r.input_hash = %s
+                  AND EXISTS (SELECT 1 FROM owned_plant)
+                LIMIT 1""",
+            (run.tenant_id, subject, run.tenant_id, run.plant_id,
+             run.run_id, run.tenant_id, run.plant_id, run.forecast_origin_utc,
+             run.horizon_id, run.model_id, run.model_version, run.feature_version,
+             run.input_hash, run.configuration_hash, run.code_commit, run.status,
+             run.tenant_id, run.plant_id, run.forecast_origin_utc, run.horizon_id,
+             run.model_id, run.model_version, run.input_hash),
+        ).fetchone()
+        if row is None:
+            raise PermissionError("Active membership and tenant-owned plant are required")
+        return row[0]

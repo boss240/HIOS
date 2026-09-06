@@ -34,6 +34,10 @@ After PR #23 was merged, branch `feature/22-forecast-persistence` began S2-04.
 It adds forward migration 0002 and a membership/plant-checked, idempotent forecast
 run store. It does not add a worker, forecast API route, actuals/weather ingest or
 numeric accuracy claim.
+
+S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
+documented units, finite/range checks and no silent imputation. No provider is selected
+and no external request or credential is added by this step.
 Source ZIPs retrieved through the cleaned Drive register and CRC-checked.
 Nine canonical ML files normalized/created; three legacy paths retained as aliases.
 Forecast worker, adapters, database additions and forecast endpoints are pending.

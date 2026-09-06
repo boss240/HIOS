@@ -40,6 +40,13 @@ degraded versioned runs. Duplicate interval retries are ignored; changed predict
 must use a new run, and blocked runs cannot publish stale output. Scheduler and
 worker orchestration remain pending.
 
+S2-05 begins with an untrained deterministic MODEL-001 candidate: it requires
+separate positive DC/AC capacities and versioned physical coefficients, receives
+plane-of-array irradiance rather than undocumented GHI substitution, validates
+solar context, clips output to the AC bound and flags night/clipping. It has no
+solar-position engine, feature assembly, calibration, model registry artifact or
+production activation; those remain gated by real metadata, weather and actuals.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

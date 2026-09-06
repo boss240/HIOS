@@ -16,6 +16,8 @@ from jsonschema import Draft202012Validator
 from app.main import create_app
 from app.migrate import migrate
 from app.forecast_store import ForecastRun, create_or_get_run
+from app.weather_normalization import normalize_weather
+from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
@@ -161,7 +163,7 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 2
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 3
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:
@@ -207,6 +209,35 @@ def test_forecast_storage_constraints(db):
                 run_id, interval_start_utc, interval_end_utc, predicted_power_kw,
                 predicted_energy_kwh) VALUES (%s, %s, %s, -1, 0)""",
                 (run.run_id, run.forecast_origin_utc.replace(hour=1), run.forecast_origin_utc))
+
+
+def weather_snapshot(snapshot_id, **changes):
+    weather = normalize_weather(
+        provider="provider-role", product="forecast", mapping_version="v1",
+        provider_issued_at=datetime.fromisoformat("2026-09-06T00:00:00+00:00"),
+        valid_at=datetime.fromisoformat("2026-09-06T01:00:00+00:00"),
+        interval_end=datetime.fromisoformat("2026-09-06T02:00:00+00:00"),
+        retrieved_at=datetime.fromisoformat("2026-09-06T00:01:00+00:00"),
+        ghi=400, ghi_unit="W/m2", cloud_cover=20, cloud_cover_unit="%",
+        temperature=20, temperature_unit="C",
+    )
+    values = dict(snapshot_id=snapshot_id, tenant_id="a", plant_id="002",
+                  source_reference="provider-request-123", payload_sha256="c" * 64,
+                  weather=weather)
+    values.update(changes)
+    return WeatherSnapshot(**values)
+
+
+def test_weather_snapshot_is_idempotent_and_tenant_safe(db):
+    first = weather_snapshot(uuid4())
+    assert create_or_get_snapshot(db, "alice", first) == first.snapshot_id
+    assert create_or_get_snapshot(db, "alice", weather_snapshot(uuid4())) == first.snapshot_id
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT count(*) FROM weather_snapshot").fetchone()[0] == 1
+    with pytest.raises(PermissionError):
+        create_or_get_snapshot(db, "bob", weather_snapshot(uuid4()))
+    with pytest.raises(PermissionError):
+        create_or_get_snapshot(db, "alice", weather_snapshot(uuid4(), plant_id="001"))
 
 
 def test_database_failure_is_safe_and_health_independent(keys):

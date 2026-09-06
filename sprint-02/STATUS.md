@@ -66,6 +66,12 @@ builds all points before creating a run and publishes idempotently thereafter.
 There is still no scheduler, network client, API route, job lock, live provider
 configuration, production activation or acceptance claim.
 
+The S2-07 scheduling slice adds an explicit UTC cadence/delay interface and
+migration 0005 for renewable tenant/plant/origin/horizon job leases. Only active
+tenant members can operate a lease, which prevents a concurrent worker from
+running the same logical origin. No process is scheduled or started; owner,
+cadence, monitoring, lock TTL, staging load evidence and acceptance remain open.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

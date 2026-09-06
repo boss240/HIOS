@@ -20,6 +20,7 @@ from app.model_registry import ModelCandidate, register_candidate, resolve_appro
 from app.forecast_job import ForecastWeatherInput, configuration_hash, execute_model_001, input_hash
 from app.model_001 import Model001Config
 from app.feature_assembly import PlantGeometry
+from app.forecast_schedule import JobKey, ScheduleSpec, claim_lease, latest_due_origin, release_lease
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 
@@ -167,7 +168,7 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 4
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 5
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:
@@ -331,6 +332,28 @@ def test_model_001_job_rejects_unapproved_or_changed_lineage(db):
     with pytest.raises(PermissionError, match="No approved"):
         execute_model_001(database_url=db, subject="alice", run=run, config=config,
                           geometry=geometry, weather_inputs=inputs)
+
+
+def test_forecast_schedule_uses_utc_alignment_and_explicit_delay():
+    spec = ScheduleSpec("day_ahead", cadence_minutes=60, publication_delay_minutes=10)
+    assert latest_due_origin(datetime(2026, 9, 7, 10, 5, tzinfo=timezone.utc), spec) == datetime(
+        2026, 9, 7, 9, tzinfo=timezone.utc
+    )
+    with pytest.raises(ValueError):
+        latest_due_origin(datetime(2026, 9, 7, 10, 5), spec)
+
+
+def test_forecast_job_lease_is_scoped_renewable_and_releasable(db):
+    key = JobKey("a", "002", datetime(2026, 9, 7, 9, tzinfo=timezone.utc), "day_ahead")
+    first, second = uuid4(), uuid4()
+    assert claim_lease(db, "alice", key, first) is True
+    assert claim_lease(db, "alice", key, first) is True
+    assert claim_lease(db, "alice", key, second) is False
+    with pytest.raises(PermissionError):
+        claim_lease(db, "bob", key, second)
+    assert release_lease(db, "alice", key, second) is False
+    assert release_lease(db, "alice", key, first) is True
+    assert claim_lease(db, "alice", key, second) is True
 
 
 def weather_snapshot(snapshot_id, **changes):

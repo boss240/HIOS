@@ -22,6 +22,22 @@ Batch execution is the first proposal within the existing Python modular monolit
 No separate feature-store service or streaming platform is needed for the first
 slice. A scheduler and worker remain to be implemented with bounded concurrency.
 
+## Implemented MODEL-001 feature assembly
+
+`app/feature_assembly.py` provides `model-001-features-v1`. It takes a
+normalized as-issued weather interval and explicit plant latitude, longitude,
+tilt, surface azimuth and ground albedo. It calculates a deterministic candidate
+solar context at the interval midpoint, then uses DNI, DHI and GHI in an
+isotropic transposition equation to create POA irradiance for MODEL-001. It
+requires both DNI and DHI: no hidden decomposition or substitution from GHI is
+used. A night context yields zero POA only after the solar calculation.
+
+The weather issue and retrieval times must be no later than the forecast origin.
+The compact solar calculation is a versioned baseline coefficient set, not a
+validated replacement for an approved solar library. Feature persistence,
+snapshot selection, effective plant-metadata versioning and scientific
+validation/calibration remain open before activation.
+
 ## Feature coverage
 
 FEAT-001–004: normalized irradiance, cloud, temperature and wind.

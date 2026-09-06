@@ -68,15 +68,18 @@ def run_once(*, database_url: str, subject: str, key: JobKey, lease_id: UUID,
     if not claim_lease(database_url, subject, key, lease_id, lease_ttl_seconds):
         return WorkerAttempt(None, "not_acquired")
     outcome_id = uuid4()
+    outcome_started = False
     try:
         _start_outcome(database_url, subject, key, lease_id, outcome_id)
+        outcome_started = True
         result = execute_model_001(database_url=database_url, subject=subject, run=run,
                                    config=config, geometry=geometry, weather_inputs=weather_inputs)
         _finish_outcome(database_url, subject, outcome_id, status="succeeded", run_id=result.run_id,
                         published_points=result.published_points)
         return WorkerAttempt(outcome_id, "succeeded", result.run_id, result.published_points)
     except Exception as error:
-        _finish_outcome(database_url, subject, outcome_id, status="failed", error_class=type(error).__name__)
+        if outcome_started:
+            _finish_outcome(database_url, subject, outcome_id, status="failed", error_class=type(error).__name__)
         raise
     finally:
         release_lease(database_url, subject, key, lease_id)

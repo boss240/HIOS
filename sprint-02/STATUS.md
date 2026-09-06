@@ -83,6 +83,10 @@ The follow-up read-only operational summary reports outcome counts and published
 point totals only within a tenant/plant UTC window. It does not calculate or
 claim availability because expected schedules and deadlines are still unapproved.
 
+Worker failure handling is now explicitly tested: an unapproved model records a
+sanitized failed outcome and releases its lease before the original error reaches
+the external supervisor.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

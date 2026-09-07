@@ -58,6 +58,9 @@ or exception message. A non-holder returns `not_acquired` and does not create a
 second outcome. Worker supervision, retries, monitoring, alert routing and a
 production scheduler remain separate operational work.
 
+Failure-path coverage verifies that a rejected unapproved model records only a
+`failed`/`PermissionError` outcome and still releases its lease.
+
 `app/forecast_operations.py` provides a tenant/plant-scoped, read-only summary
 of recorded successful, failed and running attempts plus published point count
 within an explicit UTC time window. It does not calculate availability or SLA:

@@ -394,6 +394,31 @@ def test_worker_attempt_releases_lease_and_records_minimal_success_outcome(db):
         summarize_outcomes(db, "bob", "a", "002", outcome_window_start, outcome_window_end)
 
 
+def test_worker_records_failed_outcome_and_releases_lease(db):
+    origin = datetime(2026, 6, 21, 8, tzinfo=timezone.utc)
+    geometry = PlantGeometry(50.45, 30.52, 30, 180)
+    config = Model001Config("0.1.0-candidate", 100, 80, 0.8, -0.004)
+    weather = normalize_weather(
+        provider="fixture", product="forecast", mapping_version="v1", provider_issued_at=origin,
+        valid_at=origin.replace(hour=9), interval_end=origin.replace(hour=10), retrieved_at=origin,
+        ghi=700, ghi_unit="W/m2", cloud_cover=20, cloud_cover_unit="%", temperature=25,
+        temperature_unit="C", dni=600, dhi=100,
+    )
+    inputs = (ForecastWeatherInput("snapshot-001", weather),)
+    run = forecast_run(uuid4(), forecast_origin_utc=origin, input_hash=input_hash(inputs),
+                       configuration_hash=configuration_hash(config, geometry),
+                       feature_version="model-001-features-v1", model_version=config.model_version)
+    key = JobKey("a", "002", origin, "day_ahead")
+    with pytest.raises(PermissionError, match="No approved"):
+        run_once(database_url=db, subject="alice", key=key, lease_id=uuid4(), run=run,
+                 config=config, geometry=geometry, weather_inputs=inputs)
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT status, error_class FROM forecast_job_outcome").fetchone() == (
+            "failed", "PermissionError"
+        )
+        assert connection.execute("SELECT count(*) FROM forecast_job_lease").fetchone()[0] == 0
+
+
 def weather_snapshot(snapshot_id, **changes):
     weather = normalize_weather(
         provider="provider-role", product="forecast", mapping_version="v1",

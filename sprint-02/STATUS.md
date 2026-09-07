@@ -87,6 +87,11 @@ Worker failure handling is now explicitly tested: an unapproved model records a
 sanitized failed outcome and releases its lease before the original error reaches
 the external supervisor.
 
+S2-06 now has deterministic fixture-level ACC-001–005 calculations. It reports
+zero eligible pairs as not evaluated and does not persist actuals, set thresholds
+or claim accuracy; those actions remain blocked on a frozen real-data holdout and
+ML/QA/Product approval.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

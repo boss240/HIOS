@@ -39,6 +39,12 @@ published-point counts for a tenant/plant UTC window. It intentionally does not
 present this as ACC-008 availability: expected scheduled runs and the deadline
 are unresolved operational decisions.
 
+`app/forecast_evaluation.py` implements ACC-001–005 calculation semantics for
+paired AC-power fixtures: MAE, RMSE, signed bias, daylight MAPE above the stated
+epsilon, and nMAE using a positive AC rating. Zero pairs return explicit
+not-evaluated values; they are never reported as zero error. It persists no
+actuals, sets no release threshold and cannot establish field accuracy.
+
 ## Evaluation protocol and thresholds
 
 Report plant, horizon, provider, season/weather regime, sample period and model

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "package": "HIOS Sprint 2 / Forecasting MVP",
+  "repository": "boss240/HIOS",
+  "epic_issue": 10,
+  "tracking_issue": 22,
+  "baseline_commit": "65722236a764ad92245dc8a22e3aa0b7a1bece5b",
+  "verified_date": "2026-09-09",
+  "status": "in_progress",
+  "source_manifest": "sprint-02/source-manifest.json",
+  "acceptance_ledger": "sprint-02/ACCEPTANCE.md",
+  "equivalence": "Repository content equivalent; original ZIP byte identity not verified",
+  "files": [
+    "SPRINT_02_README.md",
+    "SPRINT_02_MANIFEST.json",
+    "docs/ml/README.md",
+    "docs/ml/forecasting-methodology.md",
+    "docs/ml/weather-provider-assumptions.md",
+    "docs/ml/model-registry.md",
+    "docs/ml/feature-pipeline.md",
+    "docs/ml/quality-metrics.md",
+    "docs/ml/ml-operations-checklist.md",
+    "docs/ml/provider-failover.md",
+    "docs/ml/forecast-validation.md",
+    "docs/ml/sprint-02-acceptance-checklist.md",
+    ".github/workflows/forecasting-docs-ci.yml"
+  ]
+}

@@ -9,11 +9,13 @@ ML_FILES = (
     "README.md", "forecasting-methodology.md", "weather-provider-assumptions.md",
     "model-registry.md", "feature-pipeline.md", "quality-metrics.md",
     "ml-operations-checklist.md", "provider-failover.md", "forecast-validation.md",
+    "sprint-02-acceptance-checklist.md",
     "weather-provider-integration.md", "ml-ops-checklist.md", "forecast-quality-qa.md",
 )
 TRACKING = ("README.md", "STATUS.md", "SOURCES.md", "ACCEPTANCE.md")
 paths = [ROOT / "docs/ml" / name for name in ML_FILES]
 paths += [ROOT / "sprint-02" / name for name in TRACKING]
+paths += [ROOT / "SPRINT_02_README.md"]
 errors = []
 for path in paths:
     if not path.is_file() or not path.read_text(encoding="utf-8").strip():
@@ -29,6 +31,25 @@ for path in paths:
         resolved = (path.parent / unquote(parsed.path)).resolve()
         if not resolved.is_relative_to(ROOT) or not resolved.is_file():
             errors.append(f"Broken local link: {path.relative_to(ROOT)} -> {target}")
+
+package_paths = {
+    "SPRINT_02_README.md", "SPRINT_02_MANIFEST.json",
+    ".github/workflows/forecasting-docs-ci.yml",
+    *(f"docs/ml/{name}" for name in ML_FILES[:10]),
+}
+try:
+    package = json.loads((ROOT / "SPRINT_02_MANIFEST.json").read_text(encoding="utf-8"))
+    entries = package["files"]
+    if not isinstance(entries, list) or any(not isinstance(entry, str) for entry in entries):
+        raise ValueError("files must be a list of paths")
+    if len(entries) != len(package_paths) or set(entries) != package_paths:
+        errors.append("Package manifest must list each of the 13 requested paths once")
+    for entry in sorted(package_paths):
+        path = ROOT / entry
+        if not path.is_file() or not path.read_text(encoding="utf-8").strip():
+            errors.append(f"Missing or empty package file: {entry}")
+except (OSError, ValueError, KeyError, TypeError) as error:
+    errors.append(f"Invalid package manifest: {error}")
 
 manifest_path = ROOT / "sprint-02/source-manifest.json"
 try:

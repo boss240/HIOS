@@ -28,6 +28,9 @@ Before either row becomes an `InverterCloudBinding`, Data Ops must retain:
 4. a versioned mapping for AC power, energy, status, interval and timezone;
 5. a historical reconciliation result against the agreed measurement boundary.
 
+The [Deye OpenAPI onboarding runbook](deye-openapi-onboarding.md) defines the
+approved endpoint allowlist and the evidence expected from that discovery.
+
 The source system's account password or session must never be stored in HIOS,
 Git, test fixtures, logs or outcomes. The two plants remain unbound until all
 prerequisites are satisfied.

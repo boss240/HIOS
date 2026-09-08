@@ -71,3 +71,10 @@ evaluation. Align each accepted record with the measurement boundary, plant,
 exact UTC interval and meter semantics before it enters a training or holdout
 dataset. Provider cloud values are not automatically treated as ground truth;
 missing intervals, corrected values and device outages must remain visible.
+
+## Active Deye pilot scope
+
+The first selected Deye Cloud plants are recorded in the
+[Deye pilot register](deye-pilot-register.md). Their selection authorizes only
+the controlled, read-only pilot preparation described there; it does not bypass
+the per-plant enablement gate or activate a connection.

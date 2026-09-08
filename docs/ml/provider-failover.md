@@ -22,6 +22,13 @@ Secondary data must pass the same units, spatial mapping, interval, freshness an
 as-of gates as primary data. Preserve source versions at the filled interval/field
 level. No ensemble is implemented in this slice.
 
+Google is the selected source for general weather covariates and Solcast is the
+selected source for GHI/DNI/DHI in the target operational contour. OpenWeather
+Solar is reserved for historical issued-forecast training and independent
+backtests; it is not an automatic runtime fallback. Add a live fallback only
+after its irradiance fields, issue-time semantics, quality and contractual rights
+have passed the same validation gates as Solcast.
+
 Proposal for initial adapter testing: total request budget 30 seconds per job,
 at most 3 attempts per provider, exponential backoff with jitter, and no retry past
 the job deadline. These are engineering defaults pending vendor cadence/quotas.

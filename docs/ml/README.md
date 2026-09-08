@@ -4,8 +4,10 @@ Related issue: #10 (EPIC-005); milestone: M3 Forecasting MVP.
 Sources: HEDS-010, HEDS-011, HEDS-012, HEDS-018, HEDS-022, HEDS-023,
 v0.1.0-UA. See [source evidence and coverage](../../sprint-02/SOURCES.md).
 
-Status: implementation specification for review. This package starts Sprint 2;
-it does not deliver a forecast worker, trained model, weather adapter or new HTTP endpoint.
+Status: documentation foundation and controlled runtime components are implemented
+through PR #37. MODEL-001, persistence, weather normalization/failover, worker
+leases/outcomes and fixture evaluation exist; provider integration, field accuracy
+and operational acceptance remain pending. See the [package overview](../../SPRINT_02_README.md).
 Sprint 1's implemented API, database, authentication and migrations are reused.
 
 ## Canonical documents
@@ -18,6 +20,7 @@ Sprint 1's implemented API, database, authentication and migrations are reused.
 - [ML operations checklist](ml-operations-checklist.md): monitoring, rollback and ownership.
 - [Provider failover](provider-failover.md): outage, quota, staleness and recovery.
 - [Forecast validation](forecast-validation.md): reproducible evaluation and test cases.
+- [Sprint 2 acceptance checklist](sprint-02-acceptance-checklist.md): gate review entry point.
 - [Sprint plan](../../sprint-02/README.md), [acceptance](../../sprint-02/ACCEPTANCE.md)
   and [status](../../sprint-02/STATUS.md).
 

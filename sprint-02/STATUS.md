@@ -116,7 +116,7 @@ Forecast worker, adapters, database additions and forecast endpoints are pending
 | S2-D01 | Hourly UTC origins; day-ahead 24–48h; AC power/energy target | ML/Backend; proposal | Distinguish from local calendar-day product |
 | S2-D02 | Separate AC rating and existing DC capacityKw | Data/ML | Missing metadata blocks physical bound |
 | S2-D03 | MODEL-001 physical/statistical candidate; no active model | ML | Physical library/parameters and calibration remain open |
-| S2-D04 | Primary/secondary vendor, TTL, quotas, credentials and rights | Data Ops/Product | Blocks live adapter enablement |
+| S2-D04 | Google selected for operational weather covariates; Solcast selected for production-contour GHI/DNI/DHI; OpenWeather Solar selected for historical issued-forecast training/backtest | Data Ops/Product | Configure credentials, quotas, TTL, rights and a live irradiance fallback; no provider adapter or production activation is enabled |
 | S2-D05 | Real actuals and archived as-issued weather; meter boundary | Data/QA | Blocks meaningful historical accuracy evidence |
 | S2-D06 | Numeric release limits, coverage/minimum samples and deadline | ML/QA/Product | Must be frozen before held-out evaluation |
 | S2-D07 | Named owners, staging scheduler, storage and rollback evidence | Engineering/SRE | Blocks operational acceptance |

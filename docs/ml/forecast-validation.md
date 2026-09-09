@@ -21,6 +21,14 @@ HEDS-023 acceptance_checks. [Source coverage](../../sprint-02/SOURCES.md).
    exclusions, known issues and review decision. Synthetic fixtures prove behavior,
    not real-world accuracy.
 
+`app/actuals_alignment.py` implements the first persistence-side part of step 4.
+It pairs forecast and actual AC-power values only when tenant, plant and both UTC
+interval boundaries match. The caller supplies actual provider, mapping version
+and an `actuals_as_of_utc` cutoff; the newest actual revision retrieved by that
+cutoff is selected. Later corrections remain excluded from an earlier evaluation
+view. It does not assign daylight status, calculate accuracy, choose exclusions
+or establish a frozen holdout.
+
 ## Required runtime test matrix
 
 | Test ID | Scenario and expected result | HEDS anchor | Gate |

@@ -30,6 +30,7 @@ from app.actual_generation_store import (
     ActualGenerationSnapshot,
     create_or_get_actual_snapshot,
 )
+from app.actuals_alignment import load_aligned_power_samples
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
@@ -488,6 +489,63 @@ def test_actual_generation_snapshot_is_idempotent_and_tenant_safe(db):
         create_or_get_actual_snapshot(db, "bob", actual_snapshot(uuid4()))
     with pytest.raises(PermissionError):
         create_or_get_actual_snapshot(db, "alice", actual_snapshot(uuid4(), plant_id="001"))
+
+
+def test_actual_alignment_uses_exact_intervals_and_as_of_known_revision(db):
+    run = forecast_run(uuid4())
+    create_or_get_run(db, "alice", run)
+    point = ForecastPoint(
+        interval_start_utc=run.forecast_origin_utc,
+        interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
+        predicted_power_kw=10, predicted_energy_kwh=10,
+    )
+    publish_points(db, "alice", "a", run.run_id, (point,))
+    initial = actual_snapshot(
+        uuid4(),
+        observation=ActualGenerationObservation(
+            provider="deye_cloud", mapping_version="deye-actuals-v1",
+            observed_at_utc=run.forecast_origin_utc,
+            interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
+            retrieved_at_utc=run.forecast_origin_utc + timedelta(hours=2),
+            ac_power_kw=12.5, energy_kwh=12.5,
+        ),
+    )
+    create_or_get_actual_snapshot(db, "alice", initial)
+    early = load_aligned_power_samples(
+        database_url=db, subject="alice", tenant_id="a", plant_id="002", run_id=run.run_id,
+        actual_provider="deye_cloud", actual_mapping_version="deye-actuals-v1",
+        actuals_as_of_utc=run.forecast_origin_utc + timedelta(hours=1),
+    )
+    assert early == ()
+    known = load_aligned_power_samples(
+        database_url=db, subject="alice", tenant_id="a", plant_id="002", run_id=run.run_id,
+        actual_provider="deye_cloud", actual_mapping_version="deye-actuals-v1",
+        actuals_as_of_utc=run.forecast_origin_utc + timedelta(hours=3),
+    )
+    assert known[0].actual_power_kw == 12.5
+    revised = actual_snapshot(
+        uuid4(), payload_sha256="f" * 64,
+        observation=ActualGenerationObservation(
+            provider="deye_cloud", mapping_version="deye-actuals-v1",
+            observed_at_utc=run.forecast_origin_utc,
+            interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
+            retrieved_at_utc=run.forecast_origin_utc + timedelta(hours=4),
+            ac_power_kw=15, energy_kwh=15,
+        ),
+    )
+    create_or_get_actual_snapshot(db, "alice", revised)
+    latest = load_aligned_power_samples(
+        database_url=db, subject="alice", tenant_id="a", plant_id="002", run_id=run.run_id,
+        actual_provider="deye_cloud", actual_mapping_version="deye-actuals-v1",
+        actuals_as_of_utc=run.forecast_origin_utc + timedelta(hours=5),
+    )
+    assert latest[0].actual_power_kw == 15
+    with pytest.raises(PermissionError):
+        load_aligned_power_samples(
+            database_url=db, subject="bob", tenant_id="a", plant_id="002", run_id=run.run_id,
+            actual_provider="deye_cloud", actual_mapping_version="deye-actuals-v1",
+            actuals_as_of_utc=run.forecast_origin_utc + timedelta(hours=5),
+        )
 
 
 def test_database_failure_is_safe_and_health_independent(keys):

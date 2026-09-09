@@ -30,6 +30,9 @@ Before either row becomes an `InverterCloudBinding`, Data Ops must retain:
 
 The [Deye OpenAPI onboarding runbook](deye-openapi-onboarding.md) defines the
 approved endpoint allowlist and the evidence expected from that discovery.
+The [pilot execution runbook](deye-pilot-execution.md) defines how an
+authorized operator stores credentials and records the result without exposing
+sensitive values.
 
 The source system's account password or session must never be stored in HIOS,
 Git, test fixtures, logs or outcomes. The two plants remain unbound until all

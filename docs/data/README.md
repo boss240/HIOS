@@ -15,7 +15,8 @@ This folder captures the first implementation-level data baseline for HIOS Phase
 | User | Person, role, and access context | Skeleton |
 | Plant | Solar PV asset metadata | Skeleton |
 | Forecast | Forecast output, horizon, confidence, and quality metadata | Skeleton |
-| Weather input | External weather observations and forecasts | Planned |
+| Weather input | External weather observations and forecasts | Normalized tenant-safe snapshots implemented |
+| Actual generation | Tenant/plant-scoped measured AC power and/or energy with source lineage | Persistence primitive implemented; no provider ingestion |
 | Audit event | Security and operational evidence | Planned |
 
 ## Current files

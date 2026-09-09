@@ -25,6 +25,11 @@ from app.forecast_worker import run_once
 from app.forecast_operations import summarize_outcomes
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
+from app.actual_generation_store import (
+    ActualGenerationObservation,
+    ActualGenerationSnapshot,
+    create_or_get_actual_snapshot,
+)
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
@@ -452,6 +457,37 @@ def test_weather_snapshot_is_idempotent_and_tenant_safe(db):
         create_or_get_snapshot(db, "bob", weather_snapshot(uuid4()))
     with pytest.raises(PermissionError):
         create_or_get_snapshot(db, "alice", weather_snapshot(uuid4(), plant_id="001"))
+
+
+def actual_snapshot(snapshot_id, **changes):
+    start = datetime(2026, 9, 9, 10, tzinfo=timezone.utc)
+    observation = ActualGenerationObservation(
+        provider="deye_cloud", mapping_version="deye-actuals-v1",
+        observed_at_utc=start, interval_end_utc=start + timedelta(hours=1),
+        retrieved_at_utc=start + timedelta(hours=2), ac_power_kw=12.5,
+        energy_kwh=12.5, quality_flags=("source_verified",),
+    )
+    values = dict(
+        snapshot_id=snapshot_id, tenant_id="a", plant_id="002",
+        source_reference="restricted-source-record-1", payload_sha256="e" * 64,
+        observation=observation,
+    )
+    values.update(changes)
+    return ActualGenerationSnapshot(**values)
+
+
+def test_actual_generation_snapshot_is_idempotent_and_tenant_safe(db):
+    first = actual_snapshot(uuid4())
+    assert create_or_get_actual_snapshot(db, "alice", first) == first.snapshot_id
+    assert create_or_get_actual_snapshot(db, "alice", actual_snapshot(uuid4())) == first.snapshot_id
+    with psycopg.connect(db) as connection:
+        assert connection.execute(
+            "SELECT ac_power_kw, energy_kwh, quality_flags FROM actual_generation_snapshot"
+        ).fetchone() == (12.5, 12.5, ["source_verified"])
+    with pytest.raises(PermissionError):
+        create_or_get_actual_snapshot(db, "bob", actual_snapshot(uuid4()))
+    with pytest.raises(PermissionError):
+        create_or_get_actual_snapshot(db, "alice", actual_snapshot(uuid4(), plant_id="001"))
 
 
 def test_database_failure_is_safe_and_health_independent(keys):

@@ -96,6 +96,11 @@ zero eligible pairs as not evaluated and does not persist actuals, set threshold
 or claim accuracy; those actions remain blocked on a frozen real-data holdout and
 ML/QA/Product approval.
 
+Migration 0008 and its tenant-safe store prepare immutable normalized actual
+generation observations with source lineage and idempotent retry behavior. No
+provider adapter, pilot access, actual dataset, calibration or accuracy result is
+included.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

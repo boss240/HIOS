@@ -51,3 +51,9 @@ non-production pilot:
 
 Use the two plants as separate series. Do not combine them before per-plant
 quality checks and a tenant-isolation test pass.
+
+Migration 0008 and `app/actual_generation_store.py` can retain a normalized,
+tenant/plant-scoped observation only after this pilot's read-only discovery and
+field mapping gates pass. They retain provenance and a payload checksum, not a
+Deye credential, token, device identifier or raw payload. This is persistence
+preparation; it does not ingest provider data or authorize the two plants.

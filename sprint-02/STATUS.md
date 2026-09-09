@@ -60,6 +60,10 @@ resolution returns only an approved version in that scope. Promotion authorizati
 activation, artifact storage, rollback and calibration remain explicit separate
 workflows and are not inferred from candidate registration.
 
+Migration 0007 now rejects an approved-or-later model lifecycle state unless its
+reviewer, approval time and decision reference are present. It adds database
+evidence integrity only; it does not grant approval authority or activate a model.
+
 The next slice adds a controlled in-process MODEL-001 job. It resolves an
 approved tenant/plant candidate, verifies model/configuration/input/code lineage,
 builds all points before creating a run and publishes idempotently thereafter.

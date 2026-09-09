@@ -170,7 +170,9 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 6
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == len(
+            list(Path("migrations").glob("*.sql"))
+        )
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:
@@ -275,6 +277,10 @@ def test_model_candidate_registry_is_immutable_and_tenant_safe(db):
     assert register_candidate(db, "alice", candidate) is False
     with pytest.raises(PermissionError):
         register_candidate(db, "bob", model_candidate())
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with psycopg.connect(db) as connection:
+            connection.execute("""UPDATE model_registry SET state='approved'
+                WHERE tenant_id='a' AND plant_id='002'""")
     with psycopg.connect(db) as connection:
         connection.execute("""UPDATE model_registry SET state='approved', approved_by='reviewer',
             approved_at=now(), decision_ref='decision-1' WHERE tenant_id='a' AND plant_id='002'""")

@@ -101,6 +101,11 @@ generation observations with source lineage and idempotent retry behavior. No
 provider adapter, pilot access, actual dataset, calibration or accuracy result is
 included.
 
+The evaluation path can now load exact-interval forecast/actual AC-power pairs
+for one tenant, plant, provider and mapping version using an explicit actuals
+as-of cutoff. A later actual correction is excluded from earlier cutoffs. This
+does not yet establish a daylight mask, frozen holdout, thresholds or accuracy.
+
 S2-03 then began with a provider-independent normalizer: canonical UTC intervals,
 documented units, finite/range checks and no silent imputation. No provider is selected
 and no external request or credential is added by this step.

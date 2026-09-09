@@ -45,6 +45,11 @@ epsilon, and nMAE using a positive AC rating. Zero pairs return explicit
 not-evaluated values; they are never reported as zero error. It persists no
 actuals, sets no release threshold and cannot establish field accuracy.
 
+`app/actuals_alignment.py` prepares reproducible exact-interval AC-power pairs
+from persisted forecast points and actual snapshots. An evaluation caller still
+must provide the daylight mask, target exclusions, frozen cutoff and approved
+policy; pairing alone cannot claim accuracy.
+
 ## Evaluation protocol and thresholds
 
 Report plant, horizon, provider, season/weather regime, sample period and model

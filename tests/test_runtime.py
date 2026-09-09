@@ -170,7 +170,9 @@ def test_invalid_paging(client, keys, query):
 def test_migration_idempotence_and_constraints(db):
     migrate(db)
     with psycopg.connect(db) as connection:
-        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == 6
+        assert connection.execute("SELECT count(*) FROM schema_migration").fetchone()[0] == len(
+            list(Path("migrations").glob("*.sql"))
+        )
     for value in [-1, float("inf"), float("nan")]:
         with pytest.raises(psycopg.errors.CheckViolation):
             with psycopg.connect(db) as connection:

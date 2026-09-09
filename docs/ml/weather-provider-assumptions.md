@@ -28,6 +28,11 @@ DHI. Solcast supplies the required irradiance fields. Do not silently substitute
 Google cloud cover for irradiance or substitute OpenWeather historical data into
 a live forecast run.
 
+`app/weather_provider_roles.py` encodes these three roles as a fixed, testable
+registry. It accepts Google plus Solcast for a future live forecast path and
+rejects Google as an irradiance source or OpenWeather Solar as a live source.
+It does not contain an HTTP client, credential, quota or automatic request.
+
 Google's hourly history is limited to 24 hours and is not an archive of what a
 forecast said at an earlier origin. From first enablement, archive each accepted
 Google response with `retrieved_at_utc`, request parameters, response checksum,

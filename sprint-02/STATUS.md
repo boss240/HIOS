@@ -101,6 +101,10 @@ generation observations with source lineage and idempotent retry behavior. No
 provider adapter, pilot access, actual dataset, calibration or accuracy result is
 included.
 
+The actuals field-mapping contract now requires an IANA timezone, explicit units
+and interval-versus-cumulative energy semantics before canonical conversion. It
+contains no Deye schema values until a restricted read-only sample is approved.
+
 The evaluation path can now load exact-interval forecast/actual AC-power pairs
 for one tenant, plant, provider and mapping version using an explicit actuals
 as-of cutoff. A later actual correction is excluded from earlier cutoffs. This

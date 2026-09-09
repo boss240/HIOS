@@ -57,3 +57,7 @@ tenant/plant-scoped observation only after this pilot's read-only discovery and
 field mapping gates pass. They retain provenance and a payload checksum, not a
 Deye credential, token, device identifier or raw payload. This is persistence
 preparation; it does not ingest provider data or authorize the two plants.
+
+Use the [actual-generation field mapping contract](actuals-field-mapping.md) to
+record the Deye timestamp, power, energy and status fields after their native
+schema is observed. Do not infer interval energy from a cumulative counter.

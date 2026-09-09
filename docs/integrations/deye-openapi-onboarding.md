@@ -46,6 +46,8 @@ per plant. Expand the window only after field mapping and reconciliation pass.
 `scripts/deye_pilot_discovery.py` is the manual discovery entry point. It makes
 no request without `--execute`, reads credentials only from environment
 variables and emits only the two approved pilot-key/native-ID pairs.
+The [Deye pilot execution runbook](deye-pilot-execution.md) defines the secret
+names, evidence record and stop conditions for that operator action.
 
 ## Explicitly blocked API classes
 

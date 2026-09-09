@@ -118,7 +118,7 @@ Forecast worker, adapters, database additions and forecast endpoints are pending
 | S2-D03 | MODEL-001 physical/statistical candidate; no active model | ML | Physical library/parameters and calibration remain open |
 | S2-D04 | Google selected for operational weather covariates; Solcast selected for production-contour GHI/DNI/DHI; OpenWeather Solar selected for historical issued-forecast training/backtest | Data Ops/Product | Fixed role registry rejects Google-as-irradiance and OpenWeather-as-live use. Configure credentials, quotas, TTL, rights and a live irradiance fallback; no provider adapter or production activation is enabled |
 | S2-D05 | Real actuals and archived as-issued weather; meter boundary | Data/QA | Blocks meaningful historical accuracy evidence |
-| S2-D06 | Numeric release limits, coverage/minimum samples and deadline | ML/QA/Product | Must be frozen before held-out evaluation |
+| S2-D06 | Numeric release limits, coverage/minimum samples and deadline | ML/QA/Product | Fail-closed policy contract requires explicit version and approval reference. Numeric values and frozen holdout remain required before evaluation |
 | S2-D07 | Named owners, staging scheduler, storage and rollback evidence | Engineering/SRE | Blocks operational acceptance |
 | S2-D08 | First wave of ten inverter-cloud providers: Deye, SolarEdge, SMA, Fronius, Huawei, GoodWe, Growatt, Sungrow, Solis and Victron | Data Ops/Product | Read-only adapter contract exists. Deye pilot scope selected: `deye-pilot-pohreby` and `deye-pilot-borshchiv`; fixed endpoint allowlist client and tests implemented. AppSecret, GitHub secret storage, native IDs, field mapping and a tenant-safe pilot remain |
 

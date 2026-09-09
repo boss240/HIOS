@@ -61,6 +61,12 @@ absolute bias limits, baseline comparison, availability deadline/target,
 confidence-calibration criteria and permitted exclusions.
 Unset criteria block quality acceptance; this PR sets no fabricated target.
 
+`app/forecast_release_gate.py` provides a fail-closed policy contract for the
+later decision. A caller must provide an explicitly approved, versioned policy
+with a decision reference, minimum pair count and coverage, and MAE/RMSE/absolute
+bias/nMAE limits. The gate returns reasons for rejection; it does not create an
+approval, persist an evaluation, promote a model or claim field accuracy.
+
 ML Ops produces daily availability/error/bias/blocked-job reports and weekly
 provider/drift reviews (FREP-001–005). Numeric drift triggers require calibration.
 A trigger starts investigation/retraining review; it never auto-promotes a model.

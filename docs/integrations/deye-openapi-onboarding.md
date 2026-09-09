@@ -43,6 +43,10 @@ selected native station ID, and be written to an immutable audit record without
 secret values. The initial historical request should cover one closed UTC day
 per plant. Expand the window only after field mapping and reconciliation pass.
 
+`scripts/deye_pilot_discovery.py` is the manual discovery entry point. It makes
+no request without `--execute`, reads credentials only from environment
+variables and emits only the two approved pilot-key/native-ID pairs.
+
 ## Explicitly blocked API classes
 
 HIOS must reject every endpoint outside the allowlist, including:

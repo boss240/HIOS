@@ -99,6 +99,8 @@ and no external request or credential is added by this step.
 The next S2-03 slice adds immutable tenant-safe normalized-weather snapshots with
 source reference and payload hash. It stores neither credentials nor raw payloads;
 the selected adapter must retain raw evidence according to the documented policy.
+Normalization now also rejects an impossible provider issue time later than the
+recorded retrieval time before the input can reach feature assembly.
 The following S2-03 slice implements a provider-independent bounded retry and
 primary-to-secondary failover policy. It accepts injected adapters only, records
 attempt events for audit, honours a Retry-After delay only within the 30-second

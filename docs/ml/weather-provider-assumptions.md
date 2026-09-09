@@ -90,6 +90,8 @@ Normalize in UTC and preserve original plant coordinates (NORM-001–003).
 Do not invent sub-hourly detail from hourly data. Flag missing coverage and preserve
 interval-level provenance when filling gaps (NORM-004–009).
 Backfill and reanalysis remain separate from live input versions (NORM-010).
+The normalizer rejects a provider issue time later than its retrieval time; this
+prevents an impossible as-issued lineage record from entering feature assembly.
 
 ## Readiness, costs and retention
 

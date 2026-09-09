@@ -34,6 +34,7 @@ def test_normalizes_units_and_utc_without_clipping_irradiance():
     {"ghi": -1}, {"cloud_cover": 101}, {"temperature_unit": "F"},
     {"wind_speed": 1, "wind_speed_unit": "mph"},
     {"interval_end": ORIGIN}, {"valid_at": datetime(2026, 9, 6, 11)},
+    {"provider_issued_at": ORIGIN + timedelta(minutes=1)},
     {"humidity": float("nan")}, {"provider": ""},
 ])
 def test_rejects_unknown_or_invalid_values(changes):

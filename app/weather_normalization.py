@@ -61,8 +61,12 @@ def normalize_weather(*, provider: str, product: str, mapping_version: str,
     only impossible negative values are rejected. The returned timestamps are UTC,
     and the interval remains exactly as supplied rather than being resampled.
     """
+    provider_issued_at_utc = _utc(provider_issued_at, "provider_issued_at")
+    retrieved_at_utc = _utc(retrieved_at, "retrieved_at")
     valid_at_utc = _utc(valid_at, "valid_at")
     interval_end_utc = _utc(interval_end, "interval_end")
+    if provider_issued_at_utc > retrieved_at_utc:
+        raise ValueError("provider_issued_at must not be after retrieved_at")
     if interval_end_utc <= valid_at_utc:
         raise ValueError("interval_end must be after valid_at")
     if ghi_unit != "W/m2":
@@ -86,9 +90,9 @@ def normalize_weather(*, provider: str, product: str, mapping_version: str,
     return NormalizedWeather(
         provider=_name(provider, "provider"), product=_name(product, "product"),
         mapping_version=_name(mapping_version, "mapping_version"),
-        provider_issued_at_utc=_utc(provider_issued_at, "provider_issued_at"),
+        provider_issued_at_utc=provider_issued_at_utc,
         valid_at_utc=valid_at_utc, interval_end_utc=interval_end_utc,
-        retrieved_at_utc=_utc(retrieved_at, "retrieved_at"),
+        retrieved_at_utc=retrieved_at_utc,
         irradiance_global_wm2=_number(ghi, "ghi", 0),
         cloud_cover_pct=_number(cloud_cover, "cloud_cover", 0, 100),
         temperature_c=temperature_c,

@@ -120,7 +120,7 @@ Forecast worker, adapters, database additions and forecast endpoints are pending
 | S2-D05 | Real actuals and archived as-issued weather; meter boundary | Data/QA | Blocks meaningful historical accuracy evidence |
 | S2-D06 | Numeric release limits, coverage/minimum samples and deadline | ML/QA/Product | Must be frozen before held-out evaluation |
 | S2-D07 | Named owners, staging scheduler, storage and rollback evidence | Engineering/SRE | Blocks operational acceptance |
-| S2-D08 | First wave of ten inverter-cloud providers: Deye, SolarEdge, SMA, Fronius, Huawei, GoodWe, Growatt, Sungrow, Solis and Victron | Data Ops/Product | Read-only adapter contract exists. Deye pilot scope selected: `deye-pilot-pohreby` and `deye-pilot-borshchiv`; complete supplier access, owner consent, field mapping and a tenant-safe pilot before ingesting data |
+| S2-D08 | First wave of ten inverter-cloud providers: Deye, SolarEdge, SMA, Fronius, Huawei, GoodWe, Growatt, Sungrow, Solis and Victron | Data Ops/Product | Read-only adapter contract exists. Deye pilot scope selected: `deye-pilot-pohreby` and `deye-pilot-borshchiv`; fixed endpoint allowlist client and tests implemented. AppSecret, GitHub secret storage, native IDs, field mapping and a tenant-safe pilot remain |
 
 No blocker prevents documentation review or fixture-based implementation.
 Live data, provider enablement and production acceptance remain gated as above.

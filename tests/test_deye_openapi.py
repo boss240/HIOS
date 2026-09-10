@@ -33,3 +33,27 @@ def test_history_is_bounded_and_rejects_control_paths():
         api.station_history("Bearer token", 0, granularity=2, start_at="2026-09-01")
     with pytest.raises(DeyeApiError):
         api._post("/v1.0/order/sys/workMode/update", {})
+
+
+def test_rejected_token_exposes_only_safe_endpoint_and_status_diagnostics():
+    api = client(lambda request: httpx.Response(200, json={"success": False, "message": "secret response"}))
+
+    with pytest.raises(DeyeApiError) as exc_info:
+        api.obtain_token()
+
+    error = exc_info.value
+    assert error.endpoint == "/v1.0/account/token"
+    assert error.status_code == 200
+    assert "secret response" not in str(error)
+
+
+def test_http_failure_exposes_safe_status_without_response_body():
+    api = client(lambda request: httpx.Response(401, text="credential response"))
+
+    with pytest.raises(DeyeApiError) as exc_info:
+        api.obtain_token()
+
+    error = exc_info.value
+    assert error.endpoint == "/v1.0/account/token"
+    assert error.status_code == 401
+    assert "credential response" not in str(error)

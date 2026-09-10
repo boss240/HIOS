@@ -58,6 +58,15 @@ stay outside source control and logs. No live or paid calls are enabled by this 
 HEDS APIW paths describe logical capabilities; do not assume a supplier literally
 implements /forecast or /metadata. Map each capability to documented vendor APIs.
 
+The current request contracts are deliberately explicit: Google uses
+`GET /v1/forecast/hours:lookup` with metric units, documented 1–240 hour scope
+and 1–24 item pages; Solcast uses
+`GET /data/forecast/radiation_and_weather` with GHI, DNI, DHI, air temperature
+and wind speed. `app/weather_provider_requests.py` validates only that request
+shape. It contains neither an API key nor an HTTP call. The vendor references
+are [Google hourly forecast](https://developers.google.com/maps/documentation/weather/hourly-forecast)
+and [Solcast radiation and weather forecast](https://docs.solcast.com.au/docs/unmetered-locations).
+
 | Google capability | Sprint 2 use | Limitation / gate |
 | --- | --- | --- |
 | Hourly forecast, max 240 hours | Temperature, cloud, wind and other supported covariates | Snapshot every accepted response; no documented issue timestamp means retrieval time is not forecast issue time |

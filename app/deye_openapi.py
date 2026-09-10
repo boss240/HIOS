@@ -24,6 +24,12 @@ _READ_PATHS = frozenset({
 class DeyeApiError(RuntimeError):
     """A redacted Deye API failure; response bodies and credentials are excluded."""
 
+    def __init__(self, message: str, *, endpoint: str | None = None,
+                 status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.endpoint = endpoint
+        self.status_code = status_code
+
 
 @dataclass(frozen=True)
 class DeyeCredentials:
@@ -54,7 +60,7 @@ class DeyeReadOnlyClient:
 
     def _post(self, path: str, payload: dict[str, Any], *, token: str | None = None) -> dict[str, Any]:
         if path not in _READ_PATHS:
-            raise DeyeApiError("Deye endpoint is not approved for read-only use")
+            raise DeyeApiError("Deye endpoint is not approved for read-only use", endpoint=path)
         headers = {"Content-Type": "application/json"}
         if token:
             headers["Authorization"] = token
@@ -63,9 +69,11 @@ class DeyeReadOnlyClient:
             response.raise_for_status()
             body = response.json()
         except (httpx.HTTPError, ValueError) as error:
-            raise DeyeApiError("Deye read request failed") from error
+            status_code = error.response.status_code if isinstance(error, httpx.HTTPStatusError) else None
+            raise DeyeApiError("Deye read request failed", endpoint=path, status_code=status_code) from error
         if not isinstance(body, dict) or body.get("success") is False:
-            raise DeyeApiError("Deye rejected the read request")
+            raise DeyeApiError("Deye rejected the read request", endpoint=path,
+                               status_code=response.status_code)
         return body
 
     def obtain_token(self) -> str:

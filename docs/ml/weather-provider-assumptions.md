@@ -116,3 +116,10 @@ Open owners: Data Ops configures Google and Solcast quotas/TTLs and selects a
 live secondary irradiance source; Product validates Google, Solcast and
 OpenWeather usage rights and budget; ML Engineering validates transformations,
 the historical backtest split and any future irradiance derivation.
+
+The application configuration boundary is implemented in
+`app/weather_provider_credentials.py`. It accepts only
+`GOOGLE_WEATHER_API_KEY` and `SOLCAST_API_KEY` for the operational contour,
+keeps their values out of object representations, and rejects missing or blank
+values before any adapter can make a request. It intentionally does not load an
+OpenWeather key for a live forecast path.

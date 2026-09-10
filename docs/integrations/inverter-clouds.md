@@ -44,6 +44,10 @@ external plant ID, a secret-manager reference and the consent-record reference.
 Secret values, passwords and owner tokens never enter Git, logs, outcomes or
 database error text.
 
+The [actual-generation field mapping contract](actuals-field-mapping.md)
+requires explicit source timezone, units and energy semantics before an adapter
+can convert a provider response into canonical measurements.
+
 Connections are read-only. Remote control, inverter configuration, firmware
 updates, dispatch, account changes and device onboarding are excluded. A provider
 must fail closed on missing consent, invalid credentials, missing plant scope,

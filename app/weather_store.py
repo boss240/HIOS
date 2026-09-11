@@ -44,8 +44,9 @@ def create_or_get_snapshot(database_url: str, subject: str, snapshot: WeatherSna
                         temperature_c, wind_speed_ms, irradiance_direct_wm2,
                         irradiance_diffuse_wm2, relative_humidity_pct, precipitation_mm
                     )
-                    SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                           %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    SELECT %s, %s, %s, %s, %s, %s, %s,
+                           %s, %s, %s, %s, %s, %s, %s,
+                           %s, %s, %s, %s, %s, %s, %s
                     FROM owned_plant
                     ON CONFLICT (tenant_id, plant_id, provider, product, mapping_version,
                                  provider_issued_at_utc, valid_at_utc, payload_sha256) DO NOTHING

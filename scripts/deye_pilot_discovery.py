@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.deye_openapi import DeyeCredentials, DeyeReadOnlyClient
+from app.deye_openapi import DeyeApiError, DeyeCredentials, DeyeReadOnlyClient
 
 PILOTS_BY_NAME_PREFIX = {
     "Погреби": "deye-pilot-pohreby",
@@ -93,6 +93,14 @@ def main() -> None:
     if not parser.parse_args().execute:
         raise SystemExit("dry run: pass --execute after loading Deye secrets into the environment")
     client = DeyeReadOnlyClient(credentials_from_environment())
-    print(json.dumps({"selected_pilots": discover_pilots(client)}, ensure_ascii=False))
+    try:
+        selected = discover_pilots(client)
+    except DeyeApiError as error:
+        print(json.dumps({
+            "outcome": "rejected", "endpoint": error.endpoint,
+            "status_code": error.status_code, "provider_code": error.provider_code,
+        }, ensure_ascii=False))
+        raise SystemExit(2)
+    print(json.dumps({"outcome": "completed", "selected_pilots": selected}, ensure_ascii=False))
 
 if __name__ == "__main__": main()

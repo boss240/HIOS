@@ -58,3 +58,12 @@ mandatory. A green document check does not execute S2-T01–13 or validate accur
 Progress through PR QA, staging, data/ML QA, release candidate, security/performance,
 acceptance, rollback readiness and post-release smoke only with recorded evidence.
 See the [gate ledger](../../sprint-02/ACCEPTANCE.md).
+
+## Frozen report assembly
+
+`app/frozen_evaluation_report.py` connects already aligned, as-of-safe AC-power
+pairs with a `FrozenEvaluationEvidence` record. It rejects a different pair
+count or duplicate interval before calculating ACC-001–005 metrics. Daylight is
+an explicit caller-provided classifier, so report assembly cannot guess solar
+context. The result is a pure in-memory report: it does not read a provider,
+write a database record, freeze a dataset, select thresholds or approve a model.

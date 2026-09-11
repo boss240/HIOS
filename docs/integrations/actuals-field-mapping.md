@@ -23,6 +23,13 @@ either `interval` or `cumulative`; a row without energy cannot carry a label.
 This schema change does not authorize any provider row or determine which Deye
 field has either meaning.
 
+`app/actuals_row_normalization.py` is the subsequent pure conversion boundary.
+It accepts a row only through an already-approved mapping, requires every mapped
+field to be present, converts W/Wh into kW/kWh and constructs an unstored
+`ActualGenerationObservation`. The caller must separately resolve timestamp
+format, timezone and interval boundary; the converter cannot infer them, call a
+provider, retain raw payloads or write a snapshot.
+
 ## Deye pilot gate
 
 For each pilot, record the actual Deye field names only in the restricted

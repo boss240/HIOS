@@ -1,8 +1,10 @@
 """Tenant-safe persistence of normalized weather intervals; no provider network client."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Mapping
 from uuid import UUID
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 from app.weather_normalization import NormalizedWeather
 
@@ -15,11 +17,16 @@ class WeatherSnapshot:
     source_reference: str
     payload_sha256: str
     weather: NormalizedWeather
+    provider_provenance: Mapping[str, str] = field(default_factory=dict)
 
 
 def create_or_get_snapshot(database_url: str, subject: str, snapshot: WeatherSnapshot) -> UUID:
     """Store a normalized weather interval once after membership and plant checks."""
     weather = snapshot.weather
+    if not isinstance(snapshot.provider_provenance, Mapping) or any(
+           not isinstance(name, str) or not name.strip() or not isinstance(provider, str) or not provider.strip()
+           for name, provider in snapshot.provider_provenance.items()):
+        raise ValueError("provider_provenance must map non-empty field names to non-empty providers")
     with psycopg.connect(database_url, connect_timeout=5) as connection:
         row = connection.execute(
             """WITH allowed AS (
@@ -33,12 +40,12 @@ def create_or_get_snapshot(database_url: str, subject: str, snapshot: WeatherSna
                     INSERT INTO weather_snapshot (
                         snapshot_id, tenant_id, plant_id, provider, product, mapping_version,
                         provider_issued_at_utc, valid_at_utc, interval_end_utc, retrieved_at_utc,
-                        source_reference, payload_sha256, irradiance_global_wm2, cloud_cover_pct,
+                        source_reference, payload_sha256, provider_provenance, irradiance_global_wm2, cloud_cover_pct,
                         temperature_c, wind_speed_ms, irradiance_direct_wm2,
                         irradiance_diffuse_wm2, relative_humidity_pct, precipitation_mm
                     )
-                    SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                           %s, %s, %s, %s, %s, %s, %s, %s
+                    SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                           %s, %s, %s, %s, %s, %s, %s, %s, %s
                     FROM owned_plant
                     ON CONFLICT (tenant_id, plant_id, provider, product, mapping_version,
                                  provider_issued_at_utc, valid_at_utc, payload_sha256) DO NOTHING
@@ -57,6 +64,7 @@ def create_or_get_snapshot(database_url: str, subject: str, snapshot: WeatherSna
              weather.provider, weather.product, weather.mapping_version,
              weather.provider_issued_at_utc, weather.valid_at_utc, weather.interval_end_utc,
              weather.retrieved_at_utc, snapshot.source_reference, snapshot.payload_sha256,
+             Jsonb(dict(snapshot.provider_provenance)),
              weather.irradiance_global_wm2, weather.cloud_cover_pct, weather.temperature_c,
              weather.wind_speed_ms, weather.irradiance_direct_wm2,
              weather.irradiance_diffuse_wm2, weather.relative_humidity_pct,

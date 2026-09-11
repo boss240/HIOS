@@ -460,6 +460,22 @@ def test_weather_snapshot_is_idempotent_and_tenant_safe(db):
         create_or_get_snapshot(db, "alice", weather_snapshot(uuid4(), plant_id="001"))
 
 
+def test_weather_snapshot_retains_field_level_provider_provenance(db):
+    snapshot = weather_snapshot(uuid4(), provider_provenance={
+        "cloud_cover_pct": "google_weather",
+        "irradiance_global_wm2": "solcast",
+    })
+    create_or_get_snapshot(db, "alice", snapshot)
+
+    with psycopg.connect(db) as connection:
+        assert connection.execute("SELECT provider_provenance FROM weather_snapshot").fetchone()[0] == {
+            "cloud_cover_pct": "google_weather", "irradiance_global_wm2": "solcast",
+        }
+
+    with pytest.raises(ValueError, match="provider_provenance"):
+        create_or_get_snapshot(db, "alice", weather_snapshot(uuid4(), provider_provenance={"": "solcast"}))
+
+
 def actual_snapshot(snapshot_id, **changes):
     start = datetime(2026, 9, 9, 10, tzinfo=timezone.utc)
     observation = ActualGenerationObservation(

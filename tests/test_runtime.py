@@ -284,7 +284,7 @@ def test_forecast_run_read_api_is_tenant_scoped_and_read_only(client, db, keys):
         "id": str(run.run_id), "plantId": "002",
         "forecastOriginUtc": "2026-09-06T00:00:00+00:00", "horizonId": "day_ahead",
         "modelId": "MODEL-001", "modelVersion": "0.1.0",
-        "featureVersion": "model-001-features-v1", "status": "normal",
+        "featureVersion": "features-1", "status": "normal",
         "points": [{
             "intervalStartUtc": "2026-09-06T00:00:00+00:00",
             "intervalEndUtc": "2026-09-06T01:00:00+00:00",

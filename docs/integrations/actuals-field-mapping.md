@@ -17,6 +17,12 @@ to canonical kW/kWh. It preserves the energy semantics instead of treating a
 cumulative counter as interval energy. The mapping has no HTTP client and cannot
 create an `InverterCloudBinding`, store an actual or enable a provider.
 
+Migration `0010_actual_energy_semantics.sql` retains that explicit semantic
+label with every later normalized energy observation. A row with energy requires
+either `interval` or `cumulative`; a row without energy cannot carry a label.
+This schema change does not authorize any provider row or determine which Deye
+field has either meaning.
+
 ## Deye pilot gate
 
 For each pilot, record the actual Deye field names only in the restricted

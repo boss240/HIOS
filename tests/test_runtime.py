@@ -30,6 +30,7 @@ from app.actual_generation_store import (
     ActualGenerationSnapshot,
     create_or_get_actual_snapshot,
 )
+from app.actuals_field_mapping import EnergySemantics
 from app.actuals_alignment import load_aligned_power_samples
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
@@ -482,7 +483,8 @@ def actual_snapshot(snapshot_id, **changes):
         provider="deye_cloud", mapping_version="deye-actuals-v1",
         observed_at_utc=start, interval_end_utc=start + timedelta(hours=1),
         retrieved_at_utc=start + timedelta(hours=2), ac_power_kw=12.5,
-        energy_kwh=12.5, quality_flags=("source_verified",),
+        energy_kwh=12.5, energy_semantics=EnergySemantics.INTERVAL,
+        quality_flags=("source_verified",),
     )
     values = dict(
         snapshot_id=snapshot_id, tenant_id="a", plant_id="002",
@@ -499,8 +501,8 @@ def test_actual_generation_snapshot_is_idempotent_and_tenant_safe(db):
     assert create_or_get_actual_snapshot(db, "alice", actual_snapshot(uuid4())) == first.snapshot_id
     with psycopg.connect(db) as connection:
         assert connection.execute(
-            "SELECT ac_power_kw, energy_kwh, quality_flags FROM actual_generation_snapshot"
-        ).fetchone() == (12.5, 12.5, ["source_verified"])
+            "SELECT ac_power_kw, energy_kwh, energy_semantics, quality_flags FROM actual_generation_snapshot"
+        ).fetchone() == (12.5, 12.5, "interval", ["source_verified"])
     with pytest.raises(PermissionError):
         create_or_get_actual_snapshot(db, "bob", actual_snapshot(uuid4()))
     with pytest.raises(PermissionError):
@@ -523,7 +525,7 @@ def test_actual_alignment_uses_exact_intervals_and_as_of_known_revision(db):
             observed_at_utc=run.forecast_origin_utc,
             interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
             retrieved_at_utc=run.forecast_origin_utc + timedelta(hours=2),
-            ac_power_kw=12.5, energy_kwh=12.5,
+            ac_power_kw=12.5, energy_kwh=12.5, energy_semantics=EnergySemantics.INTERVAL,
         ),
     )
     create_or_get_actual_snapshot(db, "alice", initial)
@@ -546,7 +548,7 @@ def test_actual_alignment_uses_exact_intervals_and_as_of_known_revision(db):
             observed_at_utc=run.forecast_origin_utc,
             interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
             retrieved_at_utc=run.forecast_origin_utc + timedelta(hours=4),
-            ac_power_kw=15, energy_kwh=15,
+            ac_power_kw=15, energy_kwh=15, energy_semantics=EnergySemantics.INTERVAL,
         ),
     )
     create_or_get_actual_snapshot(db, "alice", revised)

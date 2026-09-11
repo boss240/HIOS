@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.actual_generation_store import ActualGenerationObservation, ActualGenerationSnapshot
+from app.actuals_field_mapping import EnergySemantics
 
 
 def observation(**changes) -> ActualGenerationObservation:
@@ -16,6 +17,7 @@ def observation(**changes) -> ActualGenerationObservation:
         "retrieved_at_utc": start + timedelta(hours=2),
         "ac_power_kw": 12.5,
         "energy_kwh": 12.5,
+        "energy_semantics": EnergySemantics.INTERVAL,
         "quality_flags": ("source_verified",),
     }
     values.update(changes)
@@ -30,6 +32,8 @@ def test_observation_requires_utc_interval_and_measured_value():
         observation(retrieved_at_utc=datetime(2026, 9, 9, 9, tzinfo=timezone.utc))
     with pytest.raises(ValueError, match="finite non-negative"):
         observation(ac_power_kw=-1)
+    with pytest.raises(ValueError, match="energy_semantics"):
+        observation(energy_semantics=None)
 
 
 def test_snapshot_rejects_invalid_provenance_hash():

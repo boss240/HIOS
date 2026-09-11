@@ -67,6 +67,13 @@ timezone, interval boundary and whether the energy value is interval or
 cumulative for these two plants. This verified schema observation is not an
 actuals ingestion approval.
 
+The reviewed frame samples expose `timeStamp` as a ten-digit epoch candidate
+with observed five- and ten-minute spacing. `generationPower` is compatible
+with watts when compared with the recorded 30 kWp context, while
+`generationValue` is non-monotonic in the frame sample. These are diagnostic
+candidates only: they do not establish a timezone, unit, measurement boundary
+or energy semantics.
+
 Migration 0008 and `app/actual_generation_store.py` can retain a normalized,
 tenant/plant-scoped observation only after this pilot's read-only discovery and
 field mapping gates pass. They retain provenance and a payload checksum, not a

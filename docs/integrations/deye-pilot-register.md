@@ -11,8 +11,8 @@ control information.
 
 | HIOS pilot key | Deye display name | Observed operating state | Installed capacity | Intended use | Native plant ID |
 | --- | --- | --- | --- | --- | --- |
-| `deye-pilot-pohreby` | Погреби | Online; no alarms | 30 kWp | Actual-generation calibration and holdout evaluation | Pending verified read-only discovery |
-| `deye-pilot-borshchiv` | Борщів | Online; no alarms | 30 kWp | Independent actual-generation calibration and holdout evaluation | Pending verified read-only discovery |
+| `deye-pilot-pohreby` | Погреби | Online; no alarms | 30 kWp | Actual-generation calibration and holdout evaluation | Verified in restricted evidence |
+| `deye-pilot-borshchiv` | Борщів | Online; no alarms | 30 kWp | Independent actual-generation calibration and holdout evaluation | Verified in restricted evidence |
 
 The operating state and capacity were observed in the Deye Cloud business
 dashboard on 2026-09-09. They are operational context only, not an accepted
@@ -51,6 +51,28 @@ non-production pilot:
 
 Use the two plants as separate series. Do not combine them before per-plant
 quality checks and a tenant-isolation test pass.
+
+## Verified schema boundary
+
+The approved read-only discovery confirmed both native station IDs in a
+restricted evidence record. One closed UTC-day frame-history request for each
+pilot returned the same station-level schema, including `timeStamp`,
+`generationPower`, `generationValue`, battery, grid, charge, discharge and
+status-related fields. Native IDs, device identifiers, raw payloads and numeric
+values are intentionally excluded from this repository.
+
+`generationPower` and `generationValue` remain unmapped. Before they can enter
+`actual_generation_snapshot`, Data Ops must confirm their units, timestamp
+timezone, interval boundary and whether the energy value is interval or
+cumulative for these two plants. This verified schema observation is not an
+actuals ingestion approval.
+
+The reviewed frame samples expose `timeStamp` as a ten-digit epoch candidate
+with observed five- and ten-minute spacing. `generationPower` is compatible
+with watts when compared with the recorded 30 kWp context, while
+`generationValue` is non-monotonic in the frame sample. These are diagnostic
+candidates only: they do not establish a timezone, unit, measurement boundary
+or energy semantics.
 
 Migration 0008 and `app/actual_generation_store.py` can retain a normalized,
 tenant/plant-scoped observation only after this pilot's read-only discovery and

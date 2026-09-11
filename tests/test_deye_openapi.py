@@ -18,13 +18,16 @@ def test_token_and_station_discovery_use_only_expected_read_requests():
         requests.append(request)
         if request.url.path.endswith("/token"):
             assert request.url.params["appId"] == "app"
-            assert json.loads(request.content)["password"] == hashlib.sha256(b"password").hexdigest()
-            return httpx.Response(200, json={"success": True, "accessToken": "Bearer redacted"})
+            body = json.loads(request.content)
+            assert body["companyId"] == "0"
+            assert body["password"] == hashlib.sha256(b"password").hexdigest()
+            return httpx.Response(200, json={"success": True, "accessToken": "raw-token"})
         return httpx.Response(200, json={"success": True, "data": []})
     api = client(handler)
     token = api.obtain_token()
     api.list_stations(token)
     assert [r.url.path for r in requests] == ["/v1.0/account/token", "/v1.0/station/list"]
+    assert requests[1].headers["authorization"] == "bearer raw-token"
 
 
 def test_history_is_bounded_and_rejects_control_paths():

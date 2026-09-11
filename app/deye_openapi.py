@@ -65,7 +65,7 @@ class DeyeReadOnlyClient:
             raise DeyeApiError("Deye endpoint is not approved for read-only use", endpoint=path)
         headers = {"Content-Type": "application/json"}
         if token:
-            headers["Authorization"] = token
+            headers["Authorization"] = token if token.casefold().startswith("bearer ") else f"bearer {token}"
         try:
             response = self._http.post(self._base_url + path, headers=headers, json=payload,
                                        params=params)
@@ -84,7 +84,7 @@ class DeyeReadOnlyClient:
         digest = sha256(self._credentials.password.encode("utf-8")).hexdigest()
         body = self._post("/v1.0/account/token", {
             "appSecret": self._credentials.app_secret, "email": self._credentials.email,
-            "companyId": self._credentials.company_id, "password": digest,
+            "companyId": str(self._credentials.company_id), "password": digest,
         }, params={"appId": self._credentials.app_id})
         token = body.get("accessToken")
         if not isinstance(token, str) or not token.strip():

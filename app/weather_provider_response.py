@@ -118,7 +118,7 @@ def parse_solcast_radiation_forecast(payload: Mapping[str, Any]) -> tuple[Provid
                 "irradiance_direct_wm2": _number(item.get("dni"), "dni"),
                 "irradiance_diffuse_wm2": _number(item.get("dhi"), "dhi"),
                 "temperature_c": _number(item.get("air_temp"), "air_temp", minimum=-100),
-                "wind_speed_ms": _number(item.get("wind_speed"), "wind_speed"),
+                "wind_speed_ms": _number(item.get("wind_speed_10m"), "wind_speed_10m"),
             },
         ))
     return tuple(records)

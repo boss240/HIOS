@@ -95,6 +95,81 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-004}
+  /plants/{plant_id}/forecast-runs:
+    get:
+      summary: List immutable forecast runs for one authorized plant
+      description: |
+        Returns a newest-first page only when the plant belongs to the signed
+        tenant and the caller has active database membership. This is a
+        read-only index; it does not start, re-run or alter a forecast.
+      operationId: listPlantForecastRuns
+      tags: [forecasting]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: plant_id
+          in: path
+          required: true
+          schema: {type: string, minLength: 1}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+        - name: offset
+          in: query
+          schema: {type: integer, minimum: 0, maximum: 2147483647, default: 0}
+      responses:
+        '200':
+          description: Tenant-authorized newest-first page.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ForecastRunList'}
+              example:
+                data:
+                  - id: 00000000-0000-0000-0000-000000000001
+                    forecastOriginUtc: '2026-09-11T00:00:00+00:00'
+                    horizonId: day_ahead
+                    modelId: MODEL-001
+                    modelVersion: 1.0.0
+                    featureVersion: model-001-features-v1
+                    status: normal
+                    pointCount: 24
+                limit: 50
+                offset: 0
+        '400':
+          description: Invalid pagination parameters.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: VALIDATION_ERROR, message: Invalid pagination parameters, requestId: req-010}
+        '401':
+          description: Missing or invalid authentication.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: AUTH_REQUIRED, message: Authentication required, requestId: req-011}
+        '403':
+          description: Tenant context unresolved or membership inactive.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: ACCESS_DENIED, message: Access denied, requestId: req-012}
+        '404':
+          description: Plant is not visible in the authorized tenant.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: NOT_FOUND, message: Not found, requestId: req-013}
+        '500':
+          description: Unexpected failure; no internal details exposed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-014}
   /forecast-runs/{run_id}:
     get:
       summary: Read one immutable forecast run and a page of forecast points
@@ -242,6 +317,27 @@ components:
         featureVersion: {type: string, minLength: 1}
         status: {type: string, enum: [normal, degraded, blocked]}
         points: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/ForecastPoint'}}
+    ForecastRunSummary:
+      type: object
+      additionalProperties: false
+      required: [id, forecastOriginUtc, horizonId, modelId, modelVersion, featureVersion, status, pointCount]
+      properties:
+        id: {type: string, format: uuid}
+        forecastOriginUtc: {type: string, format: date-time}
+        horizonId: {type: string, enum: [intraday, day_ahead]}
+        modelId: {type: string, minLength: 1}
+        modelVersion: {type: string, minLength: 1}
+        featureVersion: {type: string, minLength: 1}
+        status: {type: string, enum: [normal, degraded, blocked]}
+        pointCount: {type: integer, minimum: 0}
+    ForecastRunList:
+      type: object
+      additionalProperties: false
+      required: [data, limit, offset]
+      properties:
+        data: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/ForecastRunSummary'}}
+        limit: {type: integer, minimum: 1, maximum: 100}
+        offset: {type: integer, minimum: 0}
     ForecastRunPage:
       type: object
       additionalProperties: false

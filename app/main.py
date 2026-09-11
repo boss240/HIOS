@@ -158,4 +158,37 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             raise HTTPException(404)
         return {"data": row[1], **page}
 
+    @api.get("/plants/{plant_id}/forecast-runs")
+    def plant_forecast_runs(request: Request, plant_id: str):
+        """Return a bounded newest-first list of immutable runs for one owned plant."""
+        tenant, subject = authenticated_context(request)
+        page = paging(request)
+        with psycopg.connect(database_url, connect_timeout=5) as connection:
+            row = connection.execute(
+                """WITH allowed AS (
+                    SELECT 1 FROM membership WHERE tenant_id=%s AND subject=%s AND active
+                ), owned_plant AS (
+                    SELECT 1 FROM plant WHERE tenant_id=%s AND public_id=%s
+                      AND EXISTS (SELECT 1 FROM allowed)
+                ), page AS (
+                    SELECT r.run_id, r.forecast_origin_utc, r.horizon_id, r.model_id,
+                           r.model_version, r.feature_version, r.status,
+                           (SELECT count(*) FROM forecast_point p WHERE p.run_id=r.run_id) AS point_count
+                    FROM forecast_run r WHERE r.tenant_id=%s AND r.plant_id=%s
+                      AND EXISTS (SELECT 1 FROM owned_plant)
+                    ORDER BY r.forecast_origin_utc DESC, r.run_id DESC LIMIT %s OFFSET %s
+                ) SELECT EXISTS (SELECT 1 FROM allowed), EXISTS (SELECT 1 FROM owned_plant),
+                    COALESCE((SELECT json_agg(json_build_object(
+                        'id', run_id, 'forecastOriginUtc', forecast_origin_utc, 'horizonId', horizon_id,
+                        'modelId', model_id, 'modelVersion', model_version,
+                        'featureVersion', feature_version, 'status', status, 'pointCount', point_count
+                    ) ORDER BY forecast_origin_utc DESC, run_id DESC) FROM page), '[]'::json)""",
+                (tenant, subject, tenant, plant_id, tenant, plant_id, page["limit"], page["offset"]),
+            ).fetchone()
+        if not row[0]:
+            raise HTTPException(403)
+        if not row[1]:
+            raise HTTPException(404)
+        return {"data": row[2], **page}
+
     return api

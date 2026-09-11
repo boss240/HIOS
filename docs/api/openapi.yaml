@@ -95,6 +95,88 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-004}
+  /forecast-runs/{run_id}:
+    get:
+      summary: Read one immutable forecast run and a page of forecast points
+      description: |
+        Returns only a run owned by the tenant in the signed JWT and active
+        database membership. The endpoint is read-only: it never invokes a
+        provider, starts a job, changes a model or republishes a forecast.
+      operationId: getForecastRun
+      tags: [forecasting]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+        - name: offset
+          in: query
+          schema: {type: integer, minimum: 0, maximum: 2147483647, default: 0}
+      responses:
+        '200':
+          description: Tenant-authorized immutable run and point page.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ForecastRunPage'}
+              example:
+                data:
+                  id: 00000000-0000-0000-0000-000000000001
+                  plantId: plant-001
+                  forecastOriginUtc: '2026-09-11T00:00:00+00:00'
+                  horizonId: day_ahead
+                  modelId: MODEL-001
+                  modelVersion: 1.0.0
+                  featureVersion: model-001-features-v1
+                  status: normal
+                  points:
+                    - intervalStartUtc: '2026-09-11T01:00:00+00:00'
+                      intervalEndUtc: '2026-09-11T02:00:00+00:00'
+                      predictedPowerKw: 12.5
+                      predictedEnergyKwh: 12.5
+                      qualityFlags: []
+                      providerProvenance: {irradiance_global_wm2: solcast}
+                limit: 50
+                offset: 0
+        '400':
+          description: Invalid run ID or pagination parameters.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: VALIDATION_ERROR, message: Invalid pagination parameters, requestId: req-005}
+        '401':
+          description: Missing or invalid authentication.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: AUTH_REQUIRED, message: Authentication required, requestId: req-006}
+        '403':
+          description: Tenant context unresolved or membership inactive.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: ACCESS_DENIED, message: Access denied, requestId: req-007}
+        '404':
+          description: No run is visible in the authorized tenant.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: NOT_FOUND, message: Not found, requestId: req-008}
+        '500':
+          description: Unexpected failure; no internal details exposed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+              example:
+                error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-009}
 components:
   securitySchemes:
     bearerAuth:
@@ -133,6 +215,39 @@ components:
           maxItems: 100
           items:
             $ref: '#/components/schemas/Plant'
+        limit: {type: integer, minimum: 1, maximum: 100}
+        offset: {type: integer, minimum: 0}
+    ForecastPoint:
+      type: object
+      additionalProperties: false
+      required: [intervalStartUtc, intervalEndUtc, predictedPowerKw, predictedEnergyKwh, qualityFlags, providerProvenance]
+      properties:
+        intervalStartUtc: {type: string, format: date-time}
+        intervalEndUtc: {type: string, format: date-time}
+        predictedPowerKw: {type: number, minimum: 0}
+        predictedEnergyKwh: {type: number, minimum: 0}
+        qualityFlags: {type: array, items: {type: string}}
+        providerProvenance: {type: object, additionalProperties: {type: string}}
+    ForecastRun:
+      type: object
+      additionalProperties: false
+      required: [id, plantId, forecastOriginUtc, horizonId, modelId, modelVersion, featureVersion, status, points]
+      properties:
+        id: {type: string, format: uuid}
+        plantId: {type: string, minLength: 1}
+        forecastOriginUtc: {type: string, format: date-time}
+        horizonId: {type: string, enum: [intraday, day_ahead]}
+        modelId: {type: string, minLength: 1}
+        modelVersion: {type: string, minLength: 1}
+        featureVersion: {type: string, minLength: 1}
+        status: {type: string, enum: [normal, degraded, blocked]}
+        points: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/ForecastPoint'}}
+    ForecastRunPage:
+      type: object
+      additionalProperties: false
+      required: [data, limit, offset]
+      properties:
+        data: {$ref: '#/components/schemas/ForecastRun'}
         limit: {type: integer, minimum: 1, maximum: 100}
         offset: {type: integer, minimum: 0}
     Error:

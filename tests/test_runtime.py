@@ -267,6 +267,37 @@ def test_forecast_point_publication_rejects_blocked_runs_and_invalid_batches(db)
         publish_points(db, "alice", "a", blocked.run_id, (invalid,))
 
 
+def test_forecast_run_read_api_is_tenant_scoped_and_read_only(client, db, keys):
+    run = forecast_run(uuid4())
+    create_or_get_run(db, "alice", run)
+    publish_points(db, "alice", "a", run.run_id, (ForecastPoint(
+        interval_start_utc=run.forecast_origin_utc,
+        interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
+        predicted_power_kw=12.5, predicted_energy_kwh=12.5,
+        quality_flags=("source_verified",), provider_provenance={"weather": "solcast"},
+    ),))
+
+    response = client.get(f"/forecast-runs/{run.run_id}?limit=1", headers=headers(keys))
+
+    assert response.status_code == 200
+    assert response.json()["data"] == {
+        "id": str(run.run_id), "plantId": "002",
+        "forecastOriginUtc": "2026-09-06T00:00:00+00:00", "horizonId": "day_ahead",
+        "modelId": "MODEL-001", "modelVersion": "0.1.0",
+        "featureVersion": "model-001-features-v1", "status": "normal",
+        "points": [{
+            "intervalStartUtc": "2026-09-06T00:00:00+00:00",
+            "intervalEndUtc": "2026-09-06T01:00:00+00:00",
+            "predictedPowerKw": 12.5, "predictedEnergyKwh": 12.5,
+            "qualityFlags": ["source_verified"], "providerProvenance": {"weather": "solcast"},
+        }],
+    }
+    contract(response, "/forecast-runs/{run_id}")
+    assert client.get(f"/forecast-runs/{run.run_id}", headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404
+    assert client.get("/forecast-runs/not-a-uuid", headers=headers(keys)).status_code == 400
+    assert client.get(f"/forecast-runs/{run.run_id}?limit=0", headers=headers(keys)).status_code == 400
+
+
 def model_candidate(**changes):
     values = dict(
         tenant_id="a", plant_id="002", model_id="MODEL-001", model_version="0.1.0-candidate",

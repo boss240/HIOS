@@ -34,7 +34,7 @@ def test_rejects_incomplete_or_non_metric_google_payloads(payload):
 def test_parses_solcast_irradiance_with_period_end_interval_semantics():
     records = parse_solcast_radiation_forecast({"forecasts": [{
         "period_end": "2026-09-10T11:00:00+00:00", "period": "PT60M",
-        "ghi": 500, "dni": 300, "dhi": 200, "air_temp": 21.5, "wind_speed": 4,
+        "ghi": 500, "dni": 300, "dhi": 200, "air_temp": 21.5, "wind_speed_10m": 4,
     }]})
     assert records[0].valid_at_utc == datetime(2026, 9, 10, 10, tzinfo=timezone.utc)
     assert records[0].values["irradiance_direct_wm2"] == 300
@@ -42,7 +42,7 @@ def test_parses_solcast_irradiance_with_period_end_interval_semantics():
 
 @pytest.mark.parametrize("payload", [
     {}, {"forecasts": []}, {"forecasts": [{"period_end": "2026-09-10T11:00:00Z", "period": "PT0M"}]},
-    {"forecasts": [{"period_end": "2026-09-10T11:00:00Z", "period": "PT60M", "ghi": -1, "dni": 1, "dhi": 1, "air_temp": 1, "wind_speed": 1}]},
+    {"forecasts": [{"period_end": "2026-09-10T11:00:00Z", "period": "PT60M", "ghi": -1, "dni": 1, "dhi": 1, "air_temp": 1, "wind_speed_10m": 1}]},
 ])
 def test_rejects_incomplete_or_invalid_solcast_payloads(payload):
     with pytest.raises(WeatherProviderSchemaError):

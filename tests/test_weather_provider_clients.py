@@ -45,7 +45,7 @@ def test_solcast_client_sends_bearer_key_only_to_solcast_and_parses_irradiance()
         assert "key" not in request.url.params
         return httpx.Response(200, json={"forecasts": [{
             "period_end": "2026-09-10T11:00:00Z", "period": "PT60M",
-            "ghi": 500, "dni": 300, "dhi": 200, "air_temp": 21, "wind_speed": 4,
+            "ghi": 500, "dni": 300, "dhi": 200, "air_temp": 21, "wind_speed_10m": 4,
         }]})
     result = solcast_client(handler).radiation_forecast(SolcastRadiationForecastRequest(50, 30))
     assert result[0].provider == "solcast"

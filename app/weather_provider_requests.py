@@ -11,7 +11,7 @@ import math
 
 GOOGLE_HOURLY_FORECAST_PATH = "/v1/forecast/hours:lookup"
 SOLCAST_RADIATION_FORECAST_PATH = "/data/forecast/radiation_and_weather"
-SOLCAST_OUTPUT_PARAMETERS = "ghi,dni,dhi,air_temp,wind_speed"
+SOLCAST_OUTPUT_PARAMETERS = "ghi,dni,dhi,air_temp,wind_speed_10m"
 
 
 def _coordinate(value: float, *, name: str, minimum: float, maximum: float) -> float:

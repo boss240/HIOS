@@ -39,6 +39,20 @@ def test_history_is_bounded_and_rejects_control_paths():
         api._post("/v1.0/order/sys/workMode/update", {})
 
 
+def test_station_device_discovery_is_limited_to_one_or_two_pilots():
+    requests = []
+    api = client(lambda request: requests.append(request) or httpx.Response(200, json={"success": True}))
+
+    api.station_devices("raw-token", (11, 22), page=1, size=20)
+
+    assert json.loads(requests[0].content) == {"page": 1, "size": 20, "stationIds": [11, 22]}
+    assert requests[0].headers["authorization"] == "bearer raw-token"
+    with pytest.raises(ValueError):
+        api.station_devices("raw-token", ())
+    with pytest.raises(ValueError):
+        api.station_devices("raw-token", (1, 2, 3))
+
+
 def test_rejected_token_exposes_only_safe_endpoint_and_status_diagnostics():
     api = client(lambda request: httpx.Response(200, json={
         "success": False, "code": "2101025", "message": "secret response",

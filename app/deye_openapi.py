@@ -96,6 +96,19 @@ class DeyeReadOnlyClient:
             raise ValueError("page must be positive and size must be 1..100")
         return self._post("/v1.0/station/list", {"page": page, "size": size}, token=token)
 
+    def station_devices(self, token: str, station_ids: tuple[int, ...], *,
+                        page: int = 1, size: int = 20) -> dict[str, Any]:
+        """Read devices for the one or two explicitly selected pilot stations."""
+        if page < 1 or not 1 <= size <= 100:
+            raise ValueError("page must be positive and size must be 1..100")
+        if not 1 <= len(station_ids) <= 2 or any(
+                isinstance(station_id, bool) or not isinstance(station_id, int) or station_id <= 0
+                for station_id in station_ids):
+            raise ValueError("station_ids must contain one or two positive integer pilot IDs")
+        return self._post("/v1.0/station/device", {
+            "page": page, "size": size, "stationIds": list(station_ids),
+        }, token=token)
+
     def station_history(self, token: str, station_id: int, *, granularity: int,
                         start_at: str, end_at: str | None = None) -> dict[str, Any]:
         if station_id <= 0 or granularity not in {1, 2, 3, 4} or not start_at:

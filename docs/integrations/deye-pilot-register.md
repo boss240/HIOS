@@ -74,6 +74,12 @@ with watts when compared with the recorded 30 kWp context, while
 candidates only: they do not establish a timezone, unit, measurement boundary
 or energy semantics.
 
+`app/deye_frame_quality.py` can produce a non-sensitive aggregate audit of one
+bounded `stationDataItems` response. It checks timestamp shape and cadence plus
+basic numeric shape for the two candidate generation fields, but does not
+return rows, map a value, store an actual or approve a field mapping. Any audit
+flag blocks automatic mapping and requires a restricted evidence review.
+
 Migration 0008 and `app/actual_generation_store.py` can retain a normalized,
 tenant/plant-scoped observation only after this pilot's read-only discovery and
 field mapping gates pass. They retain provenance and a payload checksum, not a

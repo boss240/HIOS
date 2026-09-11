@@ -25,11 +25,14 @@ def validator(schema):
 health = spec["paths"]["/health"]["get"]
 plants = spec["paths"]["/plants"]["get"]
 forecast_run = spec["paths"]["/forecast-runs/{run_id}"]["get"]
+plant_forecast_runs = spec["paths"]["/plants/{plant_id}/forecast-runs"]["get"]
 require(health.get("security") == [], "Liveness must explicitly be public")
 require(plants.get("security") == [{"bearerAuth": []}], "Plants must require authentication")
 require(forecast_run.get("security") == [{"bearerAuth": []}], "Forecast reads must require authentication")
+require(plant_forecast_runs.get("security") == [{"bearerAuth": []}], "Forecast lists must require authentication")
 require({"400", "401", "403", "500"} <= plants["responses"].keys(), "Missing error responses")
 require({"200", "400", "401", "403", "404", "500"} <= forecast_run["responses"].keys(), "Missing forecast responses")
+require({"200", "400", "401", "403", "404", "500"} <= plant_forecast_runs["responses"].keys(), "Missing forecast list responses")
 
 count = 0
 for path, item in spec["paths"].items():

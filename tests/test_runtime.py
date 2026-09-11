@@ -298,6 +298,31 @@ def test_forecast_run_read_api_is_tenant_scoped_and_read_only(client, db, keys):
     assert client.get(f"/forecast-runs/{run.run_id}?limit=0", headers=headers(keys)).status_code == 400
 
 
+def test_plant_forecast_run_list_is_tenant_scoped_newest_first(client, db, keys):
+    earlier = forecast_run(uuid4())
+    later = forecast_run(uuid4(), forecast_origin_utc=earlier.forecast_origin_utc + timedelta(hours=1))
+    create_or_get_run(db, "alice", earlier)
+    create_or_get_run(db, "alice", later)
+    publish_points(db, "alice", "a", earlier.run_id, (ForecastPoint(
+        interval_start_utc=earlier.forecast_origin_utc,
+        interval_end_utc=earlier.forecast_origin_utc + timedelta(hours=1),
+        predicted_power_kw=1, predicted_energy_kwh=1,
+    ),))
+
+    response = client.get("/plants/002/forecast-runs?limit=1", headers=headers(keys))
+
+    assert response.status_code == 200
+    assert response.json() == {"data": [{
+        "id": str(later.run_id), "forecastOriginUtc": "2026-09-06T01:00:00+00:00",
+        "horizonId": "day_ahead", "modelId": "MODEL-001", "modelVersion": "0.1.0",
+        "featureVersion": "features-1", "status": "normal", "pointCount": 0,
+    }], "limit": 1, "offset": 0}
+    contract(response, "/plants/{plant_id}/forecast-runs")
+    assert client.get("/plants/001/forecast-runs", headers=headers(keys)).status_code == 404
+    assert client.get("/plants/missing/forecast-runs", headers=headers(keys)).status_code == 404
+    assert client.get("/plants/002/forecast-runs?offset=-1", headers=headers(keys)).status_code == 400
+
+
 def model_candidate(**changes):
     values = dict(
         tenant_id="a", plant_id="002", model_id="MODEL-001", model_version="0.1.0-candidate",

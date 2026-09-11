@@ -72,6 +72,14 @@ with a decision reference, minimum pair count and coverage, and MAE/RMSE/absolut
 bias/nMAE limits. The gate returns reasons for rejection; it does not create an
 approval, persist an evaluation, promote a model or claim field accuracy.
 
+`app/frozen_evaluation_evidence.py` makes the corresponding evaluation evidence
+explicit: chronological holdout boundaries, actuals cutoff, hashes for dataset,
+forecast snapshot, actuals snapshot and exclusions, mapping version, expected
+population and every exclusion count. `evaluate_frozen_release` rejects a metric
+population that differs from this frozen record and derives coverage from it.
+The contract has no default evidence, does not retain real payloads and cannot
+create approval or accuracy evidence by itself.
+
 ML Ops produces daily availability/error/bias/blocked-job reports and weekly
 provider/drift reviews (FREP-001–005). Numeric drift triggers require calibration.
 A trigger starts investigation/retraining review; it never auto-promotes a model.

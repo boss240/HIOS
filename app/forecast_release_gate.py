@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 
 from app.forecast_evaluation import EvaluationMetrics
+from app.frozen_evaluation_evidence import FrozenEvaluationEvidence
 
 
 def _non_negative_number(value: float, name: str) -> float:
@@ -87,3 +88,11 @@ def evaluate_release(*, metrics: EvaluationMetrics, coverage_pct: float,
     if metrics.nmae_pct is None or metrics.nmae_pct > policy.maximum_nmae_pct:
         reasons.append("nmae_limit_not_met")
     return EvaluationReleaseDecision(not reasons, policy.policy_version, tuple(reasons))
+
+
+def evaluate_frozen_release(*, metrics: EvaluationMetrics, policy: ApprovedEvaluationPolicy,
+                            evidence: FrozenEvaluationEvidence) -> EvaluationReleaseDecision:
+    """Evaluate only when the metric population equals frozen evidence counts."""
+    if metrics.pair_count != evidence.included_pair_count:
+        raise ValueError("metrics pair_count must equal frozen evidence included_pair_count")
+    return evaluate_release(metrics=metrics, coverage_pct=evidence.coverage_pct, policy=policy)

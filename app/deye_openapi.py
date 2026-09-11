@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from hashlib import sha256
-from typing import Any
+from typing import Any, Mapping
 
 import httpx
 
@@ -58,14 +58,16 @@ class DeyeReadOnlyClient:
         self._http = http or httpx.Client(base_url=base_url, timeout=15.0)
         self._base_url = base_url.rstrip("/")
 
-    def _post(self, path: str, payload: dict[str, Any], *, token: str | None = None) -> dict[str, Any]:
+    def _post(self, path: str, payload: dict[str, Any], *, token: str | None = None,
+              params: Mapping[str, str] | None = None) -> dict[str, Any]:
         if path not in _READ_PATHS:
             raise DeyeApiError("Deye endpoint is not approved for read-only use", endpoint=path)
         headers = {"Content-Type": "application/json"}
         if token:
             headers["Authorization"] = token
         try:
-            response = self._http.post(self._base_url + path, headers=headers, json=payload)
+            response = self._http.post(self._base_url + path, headers=headers, json=payload,
+                                       params=params)
             response.raise_for_status()
             body = response.json()
         except (httpx.HTTPError, ValueError) as error:
@@ -81,7 +83,7 @@ class DeyeReadOnlyClient:
         body = self._post("/v1.0/account/token", {
             "appSecret": self._credentials.app_secret, "email": self._credentials.email,
             "companyId": self._credentials.company_id, "password": digest,
-        })
+        }, params={"appId": self._credentials.app_id})
         token = body.get("accessToken")
         if not isinstance(token, str) or not token.strip():
             raise DeyeApiError("Deye token response was incomplete")

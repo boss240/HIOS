@@ -17,6 +17,7 @@ def test_token_and_station_discovery_use_only_expected_read_requests():
     def handler(request):
         requests.append(request)
         if request.url.path.endswith("/token"):
+            assert request.url.params["appId"] == "app"
             assert json.loads(request.content)["password"] == hashlib.sha256(b"password").hexdigest()
             return httpx.Response(200, json={"success": True, "accessToken": "Bearer redacted"})
         return httpx.Response(200, json={"success": True, "data": []})

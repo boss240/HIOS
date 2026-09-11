@@ -25,10 +25,11 @@ class DeyeApiError(RuntimeError):
     """A redacted Deye API failure; response bodies and credentials are excluded."""
 
     def __init__(self, message: str, *, endpoint: str | None = None,
-                 status_code: int | None = None) -> None:
+                 status_code: int | None = None, provider_code: str | int | None = None) -> None:
         super().__init__(message)
         self.endpoint = endpoint
         self.status_code = status_code
+        self.provider_code = provider_code
 
 
 @dataclass(frozen=True)
@@ -75,7 +76,8 @@ class DeyeReadOnlyClient:
             raise DeyeApiError("Deye read request failed", endpoint=path, status_code=status_code) from error
         if not isinstance(body, dict) or body.get("success") is False:
             raise DeyeApiError("Deye rejected the read request", endpoint=path,
-                               status_code=response.status_code)
+                               status_code=response.status_code,
+                               provider_code=body.get("code") if isinstance(body, dict) else None)
         return body
 
     def obtain_token(self) -> str:

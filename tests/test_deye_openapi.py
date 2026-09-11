@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import date, datetime
 
 import httpx
 import pytest
@@ -37,6 +38,19 @@ def test_history_is_bounded_and_rejects_control_paths():
         api.station_history("Bearer token", 0, granularity=2, start_at="2026-09-01")
     with pytest.raises(DeyeApiError):
         api._post("/v1.0/order/sys/workMode/update", {})
+
+
+def test_frame_history_for_day_has_an_explicit_closed_utc_window():
+    requests = []
+    api = client(lambda request: requests.append(request) or httpx.Response(200, json={"success": True}))
+
+    api.station_frame_history_for_day("raw-token", 11, closed_day_utc=date(2026, 9, 10))
+
+    assert json.loads(requests[0].content) == {
+        "stationId": 11, "granularity": 1, "startAt": "2026-09-10", "endAt": "2026-09-11",
+    }
+    with pytest.raises(ValueError):
+        api.station_frame_history_for_day("raw-token", 11, closed_day_utc=datetime(2026, 9, 10))
 
 
 def test_station_device_discovery_is_limited_to_one_or_two_pilots():

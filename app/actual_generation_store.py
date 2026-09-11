@@ -10,6 +10,8 @@ from uuid import UUID
 import psycopg
 from psycopg.types.json import Jsonb
 
+from app.actuals_field_mapping import EnergySemantics
+
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -45,6 +47,7 @@ class ActualGenerationObservation:
     retrieved_at_utc: datetime
     ac_power_kw: float | None
     energy_kwh: float | None
+    energy_semantics: EnergySemantics | None = None
     device_status: str | None = None
     quality_flags: tuple[str, ...] = ()
 
@@ -62,6 +65,10 @@ class ActualGenerationObservation:
         energy = _measurement(self.energy_kwh, "energy_kwh")
         if power is None and energy is None:
             raise ValueError("at least one measured value is required")
+        if energy is None and self.energy_semantics is not None:
+            raise ValueError("energy_semantics requires energy_kwh")
+        if energy is not None and not isinstance(self.energy_semantics, EnergySemantics):
+            raise ValueError("energy_semantics is required when energy_kwh is supplied")
         if self.device_status is not None:
             _name(self.device_status, "device_status")
         if any(not isinstance(flag, str) or not flag.strip() for flag in self.quality_flags):
@@ -102,9 +109,9 @@ def create_or_get_actual_snapshot(database_url: str, subject: str,
                     INSERT INTO actual_generation_snapshot (
                         snapshot_id, tenant_id, plant_id, provider, mapping_version,
                         observed_at_utc, interval_end_utc, retrieved_at_utc,
-                        source_reference, payload_sha256, ac_power_kw, energy_kwh,
+                        source_reference, payload_sha256, ac_power_kw, energy_kwh, energy_semantics,
                         device_status, quality_flags
-                    ) SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    ) SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                     FROM owned_plant
                     ON CONFLICT (tenant_id, plant_id, provider, mapping_version,
                                  observed_at_utc, interval_end_utc, payload_sha256) DO NOTHING
@@ -123,7 +130,9 @@ def create_or_get_actual_snapshot(database_url: str, subject: str,
                 observation.provider, observation.mapping_version,
                 observation.observed_at_utc, observation.interval_end_utc,
                 observation.retrieved_at_utc, snapshot.source_reference, snapshot.payload_sha256,
-                observation.ac_power_kw, observation.energy_kwh, observation.device_status,
+                observation.ac_power_kw, observation.energy_kwh,
+                observation.energy_semantics.value if observation.energy_semantics else None,
+                observation.device_status,
                 Jsonb(list(observation.quality_flags)),
                 snapshot.tenant_id, snapshot.plant_id, observation.provider,
                 observation.mapping_version, observation.observed_at_utc,

@@ -7,6 +7,7 @@ secret manager and explicitly invoke an individual read operation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Mapping
 
@@ -117,3 +118,14 @@ class DeyeReadOnlyClient:
         if end_at:
             payload["endAt"] = end_at
         return self._post("/v1.0/station/history", payload, token=token)
+
+    def station_frame_history_for_day(self, token: str, station_id: int, *,
+                                      closed_day_utc: date) -> dict[str, Any]:
+        """Read one explicitly selected UTC day of station power intervals."""
+        if isinstance(closed_day_utc, datetime) or not isinstance(closed_day_utc, date):
+            raise ValueError("closed_day_utc must be a date")
+        return self.station_history(
+            token, station_id, granularity=1,
+            start_at=closed_day_utc.isoformat(),
+            end_at=(closed_day_utc + timedelta(days=1)).isoformat(),
+        )

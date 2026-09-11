@@ -36,6 +36,20 @@ def test_discovery_returns_only_two_approved_pilots():
     )
 
 
+def test_discovery_accepts_documented_top_level_station_list_shape():
+    class DeyeStationList(FakeDeye):
+        def list_stations(self, token):
+            return {"stationList": [
+                {"name": "Погреби", "id": 101},
+                {"name": "Борщів", "id": 202},
+            ]}
+
+    assert module.discover_pilots(DeyeStationList()) == (
+        {"pilot_key": "deye-pilot-borshchiv", "station_id": 202},
+        {"pilot_key": "deye-pilot-pohreby", "station_id": 101},
+    )
+
+
 def test_discovery_rejects_missing_pilot_and_environment():
     class Missing(FakeDeye):
         def list_stations(self, token):

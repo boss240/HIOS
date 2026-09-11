@@ -51,7 +51,7 @@ def discover_pilots(api: DeyeReadOnlyClient) -> tuple[dict[str, str | int], ...]
     rows = (
         data
         if isinstance(data, list)
-        else data.get("records", data.get("list", []))
+        else data.get("records", data.get("list", data.get("stationList", [])))
         if isinstance(data, dict)
         else []
     )

@@ -1,0 +1,13 @@
+# Build context: never send credentials or local runtime artifacts to a cloud builder.
+.git
+.github
+.pytest_cache
+__pycache__
+**/__pycache__
+.venv
+.env
+.env.*
+*.pem
+*.key
+test-results.xml
+sources

@@ -640,14 +640,29 @@ def test_migration_checksum_change_fails_closed(db):
 
 
 
-def test_forecast_dashboard_is_public_and_credentials_free(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "HIOS Forecast" in response.text
-    assert "SOLCAST_API_KEY" not in response.text
-    assert "GOOGLE_WEATHER_API_KEY" not in response.text
-    assert client.get("/assets/app.js").status_code == 200
-    assert client.get("/assets/styles.css").status_code == 200
+def test_forecast_dashboard_is_public_and_credentials_free(keys):
+    with TestClient(create_app("postgresql://invalid", keys[1], "hios-test", "hios-api")) as public:
+        response = public.get("/")
+        assert response.status_code == 200
+        assert "HIOS Forecast" in response.text
+        assert "SOLCAST_API_KEY" not in response.text
+        assert "GOOGLE_WEATHER_API_KEY" not in response.text
+        assert public.get("/assets/app.js").status_code == 200
+        assert public.get("/assets/styles.css").status_code == 200
+
+
+def test_dashboard_can_require_basic_access(keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app("postgresql://invalid", keys[1], "hios-test", "hios-api")) as guarded:
+        denied = guarded.get("/")
+        assert denied.status_code == 401
+        assert denied.headers["WWW-Authenticate"] == 'Basic realm="HIOS Forecast"'
+        assert guarded.get("/assets/app.js").status_code == 401
+        assert guarded.get("/health").status_code == 200
+        granted = guarded.get("/", auth=("operator", "test-only-password"))
+        assert granted.status_code == 200
+        assert "HIOS Forecast" in granted.text
 
 def test_real_http_server(db, keys):
     import socket

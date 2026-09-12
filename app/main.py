@@ -1,4 +1,6 @@
 """HIOS Sprint 1 API. Configuration is mandatory; no insecure defaults."""
+import base64
+import hmac
 import os
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -29,6 +31,23 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     api = FastAPI(title="HIOS API", docs_url=None, redoc_url=None)
     api.openapi = lambda: yaml.safe_load((ROOT / "docs/api/openapi.yaml").read_text())
     api.mount("/assets", StaticFiles(directory=str(ROOT / "web")), name="assets")
+    dashboard_user = os.environ.get("HIOS_DASHBOARD_USER", "")
+    dashboard_password = os.environ.get("HIOS_DASHBOARD_PASSWORD", "")
+    if bool(dashboard_user) != bool(dashboard_password):
+        raise ValueError("HIOS_DASHBOARD_USER and HIOS_DASHBOARD_PASSWORD must be set together")
+
+    def dashboard_authorized(request: Request) -> bool:
+        if not dashboard_user:
+            return True
+        scheme, _, encoded = request.headers.get("Authorization", "").partition(" ")
+        if scheme.lower() != "basic" or not encoded:
+            return False
+        try:
+            supplied = base64.b64decode(encoded, validate=True).decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            return False
+        expected = f"{dashboard_user}:{dashboard_password}"
+        return hmac.compare_digest(supplied, expected)
 
     def error(request, status, code, message):
         headers = {"WWW-Authenticate": "Bearer"} if status == 401 else {}
@@ -41,6 +60,16 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     @api.middleware("http")
     async def request_context(request, call_next):
         request.state.request_id = str(uuid4())
+        if request.url.path == "/" or request.url.path.startswith("/assets/"):
+            if not dashboard_authorized(request):
+                response = JSONResponse(
+                    {"error": {"code": "AUTH_REQUIRED", "message": "Dashboard authentication required",
+                               "requestId": request.state.request_id}},
+                    status_code=401,
+                    headers={"WWW-Authenticate": 'Basic realm="HIOS Forecast"'},
+                )
+                response.headers["X-Request-ID"] = request.state.request_id
+                return response
         try:
             response = await call_next(request)
         except Exception:

@@ -639,6 +639,16 @@ def test_migration_checksum_change_fails_closed(db):
         migrate(db)
 
 
+
+def test_forecast_dashboard_is_public_and_credentials_free(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "HIOS Forecast" in response.text
+    assert "SOLCAST_API_KEY" not in response.text
+    assert "GOOGLE_WEATHER_API_KEY" not in response.text
+    assert client.get("/assets/app.js").status_code == 200
+    assert client.get("/assets/styles.css").status_code == 200
+
 def test_real_http_server(db, keys):
     import socket
     import threading

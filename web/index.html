@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07151d">
+  <title>HIOS Forecast — погодинна генерація</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="#overview"><span class="brand-mark">◒</span><span>HIOS <b>Forecast</b></span></a>
+      <div class="live-state"><i></i> Pilot preview <span>UTC+3</span></div>
+      <button class="icon-button" id="themeToggle" aria-label="Змінити тему">☼</button>
+    </header>
+
+    <section class="hero" id="overview">
+      <div>
+        <p class="eyebrow">COMMERCIAL PROTOTYPE · TWO-PILOT LAB</p>
+        <h1>Енергія на завтра.<br><em>По годинах, із доказами.</em></h1>
+        <p class="lede">Прогноз генерації для «Погреби» та «Борщів»: сонячна модель, кілька погодних сценаріїв і накопичення точності після надходження фактичних даних.</p>
+      </div>
+      <aside class="hero-status">
+        <span>Статус контуру</span>
+        <strong>Forecast lab</strong>
+        <small>Google Weather + Solcast увімкнені<br>Додаткові канали — режим порівняння</small>
+      </aside>
+    </section>
+
+    <section class="controls" aria-label="Параметри прогнозу">
+      <div class="plant-switch" role="tablist">
+        <button class="plant active" data-plant="pohreby" role="tab"><span class="dot gold"></span>Погреби</button>
+        <button class="plant" data-plant="borshchiv" role="tab"><span class="dot violet"></span>Борщів</button>
+        <button class="plant" data-plant="portfolio" role="tab"><span class="dot mint"></span>Портфель</button>
+      </div>
+      <div class="horizon" aria-label="Горизонт">
+        <button data-hours="12">12 год</button><button class="active" data-hours="24">24 год</button><button data-hours="48">48 год</button>
+      </div>
+    </section>
+
+    <section class="metrics" aria-live="polite">
+      <article><span>Очікувана енергія</span><strong id="energyValue">53.1 <small>kWh</small></strong><p id="energyNote">Наступні 24 години</p></article>
+      <article><span>Пікова потужність</span><strong id="peakValue">8.9 <small>kW</small></strong><p id="peakNote">Оцінка MODEL-001</p></article>
+      <article><span>Погодні сценарії</span><strong id="providersValue">2 <small>live</small></strong><p>Ще 3 канали для навчання</p></article>
+      <article class="metric-accent"><span>Якість прогнозу</span><strong id="qualityValue">—</strong><p>З’явиться після actuals з інверторів</p></article>
+    </section>
+
+    <section class="chart-card">
+      <div class="card-head">
+        <div><p class="eyebrow">HOURLY ENERGY CURVE</p><h2 id="chartTitle">Погреби · прогноз на 24 години</h2></div>
+        <div class="legend"><span><i class="legend-line"></i>базовий прогноз</span><span><i class="legend-area"></i>діапазон сценаріїв</span></div>
+      </div>
+      <div class="chart-wrap" id="chartWrap">
+        <svg id="forecastChart" viewBox="0 0 1040 345" preserveAspectRatio="none" role="img" aria-label="Погодинний прогноз генерації"></svg>
+        <div class="tooltip" id="tooltip" hidden></div>
+      </div>
+      <div class="chart-foot"><span id="chartCaption">Натисніть на годину, щоб побачити сценарій.</span><span class="provisional">● provisional preview</span></div>
+    </section>
+
+    <section class="split-grid">
+      <article class="provider-card" id="providers">
+        <div class="card-head"><div><p class="eyebrow">FORECAST MOSAIC</p><h2>Постачальники погоди</h2></div><button class="text-button" id="showProviderForm">+ Додати канал</button></div>
+        <p class="card-copy">Кожен запуск зберігає незалежний знімок прогнозу. Після зіставлення з фактом HIOS обчислює похибку та вагу провайдера для кожної СЕС.</p>
+        <div class="provider-list" id="providerList"></div>
+        <form class="provider-form" id="providerForm" hidden>
+          <label>Провайдер <select id="providerSelect"></select></label>
+          <label>Роль <select id="roleSelect"><option value="challenger">Challenger</option><option value="research">Research</option></select></label>
+          <button type="submit">Додати в лабораторію</button>
+          <p>Ключі зберігаються лише в серверних secrets. Форма не збирає ключі.</p>
+        </form>
+      </article>
+
+      <article class="lab-card">
+        <p class="eyebrow">PRECISION ENGINE</p><h2>Від прогнозу до переваги</h2>
+        <ol class="learning-path">
+          <li><b>01</b><div><strong>Знімок</strong><span>Щогодини: прогноз, час випуску, координати, горизонт.</span></div></li>
+          <li><b>02</b><div><strong>Факт</strong><span>Нативні дані інвертора вирівнюються з прогнозним інтервалом.</span></div></li>
+          <li><b>03</b><div><strong>Кореляція</strong><span>MAE, RMSE, bias та ваги постачальників окремо для кожної СЕС.</span></div></li>
+          <li><b>04</b><div><strong>Реліз</strong><span>Champion/challenger: до операційного прогнозу потрапляє лише перевірена модель.</span></div></li>
+        </ol>
+        <div class="lab-note">Демо не видає синтетичні метрики за фактичну точність. Перші показники з’являться після read-only потоку actuals.</div>
+      </article>
+    </section>
+
+    <section class="commercial-strip">
+      <div><p class="eyebrow">SAAS READINESS</p><h2>Один механізм. Багато сонячних активів.</h2></div>
+      <div class="commercial-items"><span>Мульти-СЕС</span><span>Ролі й tenants</span><span>API-first</span><span>Погодинні докази</span></div>
+    </section>
+
+    <footer>HIOS Forecast · Prototype interface · Дані на екрані — контрольований preview, не диспетчерська команда.</footer>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

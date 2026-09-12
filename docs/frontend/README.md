@@ -1,28 +1,15 @@
-# Frontend Portal Foundation
+# HIOS Forecast interface
 
-Related issue: #11  
-Source: HEDS-013 Frontend / Web Application Specification
+`GET /` now serves a credentials-free commercial prototype for the two pilot plants: **Погреби** and **Борщів**. It is a browser interface layered over the existing API runtime, not a separate product or hosting deployment.
 
-## Purpose
+The panel provides an interactive hourly energy curve, a plant and horizon switcher, and a provider mosaic. Google Weather and Solcast are shown as active production inputs. Operators can add up to three challenger channels to the local prototype view; this action does not call a provider or accept a key in the browser.
 
-This folder defines the initial customer portal foundation for HIOS Phase 1.
+Values currently shown are labelled **provisional preview**: they use the controlled MODEL-001 preview assumptions until the inverter actuals stream and final physical plant configuration have been recorded. The interface deliberately shows no fabricated accuracy KPI.
 
-## Current files
+Run locally with the existing runtime command after setting the mandatory API environment variables:
 
-- `user-flows.md`: primary customer and admin-adjacent frontend flows.
-- `dashboard-shell.md`: dashboard layout and information architecture baseline.
-- `plant-views.md`: plant list and plant detail view map.
-- `forecast-views.md`: forecast chart and table view map.
-- `role-navigation.md`: role-aware navigation draft.
+```powershell
+python -m uvicorn app.main:app --factory --host 127.0.0.1 --port 8000
+```
 
-## Scope
-
-The Phase 1 frontend foundation is documentation-first. It defines expected screens, navigation, and view responsibilities before production UI implementation begins.
-
-## Open decisions
-
-- Frontend framework and build tooling.
-- Authentication/session integration model.
-- Charting library.
-- Mobile responsiveness requirements beyond core web layout.
-- Design system ownership.
+Then open `http://127.0.0.1:8000/`. Static assets are in `web/`; secrets remain server-side.

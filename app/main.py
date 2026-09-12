@@ -9,7 +9,8 @@ import yaml
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         raise ValueError("Issuer and audience must not be empty")
     api = FastAPI(title="HIOS API", docs_url=None, redoc_url=None)
     api.openapi = lambda: yaml.safe_load((ROOT / "docs/api/openapi.yaml").read_text())
+    api.mount("/assets", StaticFiles(directory=str(ROOT / "web")), name="assets")
 
     def error(request, status, code, message):
         headers = {"WWW-Authenticate": "Bearer"} if status == 401 else {}
@@ -86,6 +88,11 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
                 raise HTTPException(400)
             result[name] = number
         return result
+
+    @api.get("/", include_in_schema=False)
+    def forecast_dashboard():
+        """Serve the credentials-free HIOS Forecast commercial prototype."""
+        return FileResponse(ROOT / "web" / "index.html")
 
     @api.get("/health")
     def health():

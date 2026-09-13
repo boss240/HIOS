@@ -92,6 +92,16 @@ def contract(response, path):
         assert response.json()["error"]["requestId"] == response.headers["X-Request-ID"]
 
 
+def test_create_app_accepts_public_key_from_environment(monkeypatch, keys):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://invalid")
+    monkeypatch.setenv("JWT_PUBLIC_KEY", keys[1])
+    monkeypatch.delenv("JWT_PUBLIC_KEY_FILE", raising=False)
+    monkeypatch.setenv("JWT_ISSUER", "hios-test")
+    monkeypatch.setenv("JWT_AUDIENCE", "hios-api")
+    with TestClient(create_app()) as app:
+        assert app.get("/health").status_code == 200
+
+
 def test_liveness_and_contract(client):
     response = client.get("/health")
     assert response.status_code == 200

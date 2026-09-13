@@ -20,7 +20,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     database_url = database_url or os.environ["DATABASE_URL"]
-    public_key = public_key or Path(os.environ["JWT_PUBLIC_KEY_FILE"]).read_text()
+    if public_key is None:
+        # Azure Container Apps stores configuration as environment variables;
+        # a mounted key file remains supported for local and existing deployments.
+        public_key = os.environ.get("JWT_PUBLIC_KEY")
+        if public_key is None:
+            public_key = Path(os.environ["JWT_PUBLIC_KEY_FILE"]).read_text()
     issuer = issuer or os.environ["JWT_ISSUER"]
     audience = audience or os.environ["JWT_AUDIENCE"]
     key = load_pem_public_key(public_key.encode())

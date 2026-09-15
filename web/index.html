@@ -51,6 +51,8 @@
         <label>ID або посилання Deye Cloud<input id="quickExternalId" required placeholder="ID 61205012 або посилання на станцію"></label>
         <button type="submit">Додати СЕС</button><span id="quickIdStatus" role="status"></span>
         <p>Вставте номер станції або повне посилання зі сторінки Deye Cloud. Дані доступу тут не вводяться.</p>
+        <button type="button" class="text-button" id="discoverDeyeStations">Знайти мої СЕС у Deye</button>
+        <div id="deyeStationChoices" aria-live="polite"></div>
       </form>      <div class="asset-list" id="assetList"><p class="empty-state">Завантаження реєстру…</p></div>
       <form class="asset-form" id="assetForm" hidden>
         <label>Назва СЕС<input name="name" required maxlength="120" placeholder="Наприклад, СЕС Озерна"></label>
@@ -125,5 +127,6 @@
     <footer>HIOS Forecast · Prototype interface · Дані на екрані — контрольований preview, не диспетчерська команда.</footer>
   </main>
   <script src="/assets/app.js" defer></script>
+  <script src="/assets/deye-discovery.js" defer></script>
 </body>
 </html>

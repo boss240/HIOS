@@ -5,6 +5,8 @@ import pytest
 from app.provider_ensemble import ProviderObservation, calibrate
 from app.provider_ensemble_store import load_profile, replace_profile
 
+pytest_plugins = ["test_runtime"]
+
 
 def profile(plant_key="002"):
     return calibrate(plant_key=plant_key, rated_ac_kw=30, observations=(

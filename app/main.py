@@ -19,6 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
+from app.inverter_connection_request import list_connection_requests, request_connection
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -249,6 +250,28 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except (TypeError, ValueError):
             raise HTTPException(400)
         return {"data": {"id": plant_id}}
+    @api.get("/dashboard/plants/{plant_id}/cloud-requests", include_in_schema=False)
+    def dashboard_cloud_requests(request: Request, plant_id: str):
+        tenant, subject = dashboard_context(request)
+        try:
+            requests = list_connection_requests(database_url=database_url, tenant_id=tenant,
+                                                subject=subject, plant_id=plant_id)
+        except PermissionError:
+            raise HTTPException(404)
+        return {"data": [{"id": str(item.request_id), "provider": item.provider, "status": item.status}
+                         for item in requests]}
+
+    @api.post("/dashboard/plants/{plant_id}/cloud-requests", status_code=201, include_in_schema=False)
+    def dashboard_cloud_request(request: Request, plant_id: str, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        try:
+            item = request_connection(database_url=database_url, tenant_id=tenant, subject=subject,
+                                      plant_id=plant_id, provider=InverterCloudProvider(body.get("provider")))
+        except ValueError:
+            raise HTTPException(400)
+        except PermissionError:
+            raise HTTPException(404)
+        return {"data": {"id": str(item.request_id), "provider": item.provider, "status": item.status}}
     @api.get("/dashboard/weather-providers", include_in_schema=False)
     def dashboard_weather_providers(request: Request):
         tenant, subject = dashboard_context(request)

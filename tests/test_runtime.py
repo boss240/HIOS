@@ -761,3 +761,15 @@ def test_dashboard_can_select_weather_research_channel(db, keys, monkeypatch):
         assert dashboard.post("/dashboard/weather-providers", auth=("operator", "test-only-password"), json={
             "provider": "not-real", "role": "research"
         }).status_code == 400
+
+
+def test_dashboard_can_request_read_only_deye_connection(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        plant = dashboard.post("/dashboard/plants", auth=("operator", "test-only-password"), json={"name": "Cloud candidate"})
+        plant_id = plant.json()["data"]["id"]
+        create = dashboard.post(f"/dashboard/plants/{plant_id}/cloud-requests", auth=("operator", "test-only-password"), json={"provider": "deye_cloud"})
+        assert create.status_code == 201
+        requests = dashboard.get(f"/dashboard/plants/{plant_id}/cloud-requests", auth=("operator", "test-only-password"))
+        assert requests.json()["data"][0]["status"] == "awaiting_authorization"

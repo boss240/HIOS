@@ -782,3 +782,14 @@ def test_dashboard_can_register_a_plant_by_deye_id(db, keys, monkeypatch):
         response=dashboard.post("/dashboard/plants/register-by-provider-id", auth=("operator", "test-only-password"), json={"provider":"deye_cloud","externalPlantId":"123456"})
         assert response.status_code==201
         assert response.json()["data"]["status"]=="awaiting_authorization"
+
+
+def test_dashboard_can_register_a_plant_by_deye_station_link(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        response = dashboard.post("/dashboard/plants/register-by-provider-id", auth=("operator", "test-only-password"), json={
+            "provider": "deye_cloud", "externalPlantId": "https://www.deyecloud.com/station/basic?id=61205012"})
+        assert response.status_code == 201
+        plant = dashboard.get("/dashboard/plants", auth=("operator", "test-only-password")).json()["data"][0]
+        assert plant["name"] == "Deye Cloud · 61205012"

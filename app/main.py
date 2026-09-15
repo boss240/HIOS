@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
+from app.deye_station_reference import station_id_from_reference
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.inverter_connection_request import list_connection_requests, request_connection
@@ -237,7 +238,9 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         try:
             provider = InverterCloudProvider(body.get("provider"))
             external_id = body.get("externalPlantId")
-            if not isinstance(external_id, str) or not external_id.strip():
+            if provider is InverterCloudProvider.DEYE_CLOUD:
+                external_id = station_id_from_reference(external_id)
+            elif not isinstance(external_id, str) or not external_id.strip():
                 raise ValueError("externalPlantId is required")
             plant_id = create_plant(database_url=database_url, subject=subject, tenant_id=tenant,
                 name=f"{provider.value.replace('_', ' ').title()} · {external_id.strip()}",

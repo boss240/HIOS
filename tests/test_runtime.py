@@ -773,3 +773,12 @@ def test_dashboard_can_request_read_only_deye_connection(db, keys, monkeypatch):
         assert create.status_code == 201
         requests = dashboard.get(f"/dashboard/plants/{plant_id}/cloud-requests", auth=("operator", "test-only-password"))
         assert requests.json()["data"][0]["status"] == "awaiting_authorization"
+
+
+def test_dashboard_can_register_a_plant_by_deye_id(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        response=dashboard.post("/dashboard/plants/register-by-provider-id", auth=("operator", "test-only-password"), json={"provider":"deye_cloud","externalPlantId":"123456"})
+        assert response.status_code==201
+        assert response.json()["data"]["status"]=="awaiting_authorization"

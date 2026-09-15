@@ -95,6 +95,41 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-004}
+    post:
+      summary: Create a tenant-scoped solar plant and its manual passport
+      description: |
+        Stores only operator-entered engineering data. Credentials, tokens and
+        remote-control settings are rejected by design; cloud access is added
+        separately as a metadata-only read-only binding.
+      operationId: createPlant
+      tags: [plants]
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1}
+                capacityKw: {type: number, minimum: 0}
+                latitude: {type: number, minimum: -90, maximum: 90}
+                longitude: {type: number, minimum: -180, maximum: 180}
+                timezone: {type: string, minLength: 1}
+                capacityAcKw: {type: number, minimum: 0}
+                tiltDeg: {type: number, minimum: 0, maximum: 90}
+                azimuthDeg: {type: number, minimum: 0, exclusiveMaximum: 360}
+                mountingType: {type: string, minLength: 1}
+                meterBoundary: {type: string, minLength: 1}
+                commissioningDate: {type: string, format: date}
+                operatorNotes: {type: string, minLength: 1}
+      responses:
+        '201': {description: Plant created}
+        '400': {description: Invalid plant passport}
+        '401': {description: Authentication required}
+        '403': {description: Tenant membership is inactive}
   /plants/{plant_id}/forecast-runs:
     get:
       summary: List immutable forecast runs for one authorized plant

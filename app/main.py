@@ -231,6 +231,22 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
                                 ON CONFLICT (tenant_id,subject) DO NOTHING""", (tenant, dashboard_user))
         return tenant, dashboard_user
 
+    @api.post("/dashboard/plants/register-by-provider-id", status_code=201, include_in_schema=False)
+    def dashboard_register_by_provider_id(request: Request, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        try:
+            provider = InverterCloudProvider(body.get("provider"))
+            external_id = body.get("externalPlantId")
+            if not isinstance(external_id, str) or not external_id.strip():
+                raise ValueError("externalPlantId is required")
+            plant_id = create_plant(database_url=database_url, subject=subject, tenant_id=tenant,
+                name=f"{provider.value.replace('_', ' ').title()} · {external_id.strip()}",
+                capacity_kw=None, profile=PlantProfileInput())
+            item = request_connection(database_url=database_url, tenant_id=tenant, subject=subject,
+                                      plant_id=plant_id, provider=provider, external_plant_id=external_id)
+        except (TypeError, ValueError):
+            raise HTTPException(400)
+        return {"data": {"plantId": plant_id, "requestId": str(item.request_id), "status": item.status}}
     @api.get("/dashboard/plants", include_in_schema=False)
     def dashboard_plants(request: Request):
         tenant, subject = dashboard_context(request)

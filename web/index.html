@@ -45,7 +45,12 @@
         <button class="text-button" id="showAssetForm">+ Додати СЕС</button>
       </div>
       <p class="card-copy">Внесіть лише паспортні дані, яких немає у хмарі інвертора. Технічні дані, фактичну генерацію й стан система зчитує після підтвердженої read-only прив’язки.</p>
-      <div class="asset-list" id="assetList"><p class="empty-state">Завантаження реєстру…</p></div>
+      <form class="quick-id-form" id="quickIdForm">
+        <strong>Швидко за ID</strong>
+        <label>Провайдер<select id="quickProvider"><option value="deye_cloud">Deye Cloud</option></select></label>
+        <label>ID станції у хмарі<input id="quickExternalId" required placeholder="Наприклад, 123456"></label>
+        <button type="submit">Додати за ID</button><span id="quickIdStatus" role="status"></span>
+      </form>      <div class="asset-list" id="assetList"><p class="empty-state">Завантаження реєстру…</p></div>
       <form class="asset-form" id="assetForm" hidden>
         <label>Назва СЕС<input name="name" required maxlength="120" placeholder="Наприклад, СЕС Озерна"></label>
         <label>Потужність DC, кВт<input name="capacityKw" type="number" min="0" step="0.1" placeholder="30"></label>

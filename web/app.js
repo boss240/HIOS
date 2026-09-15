@@ -4,13 +4,15 @@ const plants = {
   portfolio: {name:'Портфель', energy:100.8, peak:17.6, factor:1.9, color:'#69d7b7', baseline:[0,0,0,0,0,0,0,.3,2.5,7,13,16.7,17.6,15.9,12,7,2.2,.3,0,0,0,0,0,0]}
 };
 const catalog = {
-  google:{name:'Google Weather', detail:'температура, хмари, вітер', state:'live', dot:'#69d7b7'},
+  google_weather:{name:'Google Weather', detail:'температура, хмари, вітер', state:'candidate', dot:'#69d7b7'},
   solcast:{name:'Solcast', detail:'GHI · DNI · DHI', state:'live', dot:'#f5b942'},
-  openmeteo:{name:'Open-Meteo Ensemble', detail:'ансамблеві сценарії для benchmark', state:'research', dot:'#9b8cff'},
-  meteoblue:{name:'meteoblue Learning MultiModel', detail:'ML multimodel challenger', state:'research', dot:'#5ebce8'},
-  meteomatics:{name:'Meteomatics', detail:'висока просторова роздільність', state:'research', dot:'#fa936d'}
+  open_meteo:{name:'Open-Meteo Ensemble', detail:'ансамблеві сценарії для benchmark', state:'research', dot:'#9b8cff'},
+  meteoblue:{name:'meteoblue', detail:'ML multimodel challenger', state:'research', dot:'#5ebce8'},
+  meteomatics:{name:'Meteomatics', detail:'висока просторова роздільність', state:'research', dot:'#fa936d'},
+  eosda_weather:{name:'EOSDA Weather', detail:'український геопросторовий канал', state:'research', dot:'#6ec2de'},
+  local_partner:{name:'Локальний погодний партнер', detail:'контрактний локальний канал', state:'research', dot:'#f5907c'}
 };
-let state = {plant:'pohreby', hours:24, channels:['google','solcast']};
+let state = {plant:'pohreby', hours:24, channels:[]};
 const $ = (s) => document.querySelector(s);
 function hours(){return Array.from({length:state.hours},(_,i)=>String(i).padStart(2,'0')+':00')}
 function pointList(values, left, top, width, height, max){return values.map((v,i)=>`${left+i/(values.length-1)*width},${top+height-(v/max)*height}`).join(' ')}
@@ -32,9 +34,10 @@ function selectPlant(){document.querySelectorAll('.plant').forEach(b=>b.classLis
 document.querySelectorAll('.plant').forEach(b=>b.addEventListener('click',()=>{state.plant=b.dataset.plant;selectPlant()}));
 document.querySelectorAll('.horizon button').forEach(b=>b.addEventListener('click',()=>{state.hours=Number(b.dataset.hours);document.querySelectorAll('.horizon button').forEach(x=>x.classList.toggle('active',x===b));renderChart()}));
 $('#showProviderForm').addEventListener('click',()=>{$('#providerForm').hidden=!$('#providerForm').hidden});
-$('#providerForm').addEventListener('submit',e=>{e.preventDefault();const id=$('#providerSelect').value;if(id){state.channels.push(id);$('#providerForm').hidden=true;renderProviders();renderChart()}});
+$('#providerForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#providerSelect').value;if(!id)return;try{const response=await fetch('/dashboard/weather-providers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:id,role:$('#roleSelect').value})});if(!response.ok)throw new Error();await loadProviders();$('#providerForm').hidden=true;}catch{$('#providerForm').querySelector('p').textContent='�� ������� �������� �����. �������� ����������.';}});
+async function loadProviders(){try{const response=await fetch('/dashboard/weather-providers');if(!response.ok)throw new Error();const rows=(await response.json()).data;rows.forEach(row=>{if(catalog[row.id])catalog[row.id].state=row.status==='configured'?'live':row.role;});state.channels=rows.map(row=>row.id);renderProviders();renderChart();}catch{renderProviders();renderChart();}}
 $('#themeToggle').addEventListener('click',()=>document.body.classList.toggle('bright'));
-renderProviders();renderChart();
+loadProviders();
 
 const assetForm = $('#assetForm');
 const assetList = $('#assetList');

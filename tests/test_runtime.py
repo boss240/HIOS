@@ -713,3 +713,22 @@ def test_real_http_server(db, keys):
         thread.join(timeout=10)
         listener.close()
     assert not thread.is_alive()
+
+
+def test_plant_onboarding_api_creates_and_exposes_only_metadata(client, keys):
+    created = client.post("/plants", headers=headers(keys), json={
+        "name": "API solar site", "capacityKw": 20, "latitude": 50.2, "longitude": 30.3,
+        "timezone": "Europe/Kyiv", "meterBoundary": "grid export",
+    })
+    assert created.status_code == 201
+    plant_id = created.json()["data"]["id"]
+    binding = client.post(f"/plants/{plant_id}/cloud-bindings", headers=headers(keys), json={
+        "provider": "deye_cloud", "externalPlantId": "restricted-native-id",
+        "credentialReference": "keyvault://deye/a", "consentRecordReference": "consent-a",
+        "mappingVersion": "deye-v1", "discoveryStatus": "pending",
+    })
+    assert binding.status_code == 201
+    read = client.get(f"/plants/{plant_id}/onboarding", headers=headers(keys))
+    assert read.status_code == 200
+    assert read.json()["data"]["cloudBindings"][0]["readOnly"] is True
+    assert client.get(f"/plants/{plant_id}/onboarding", headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404

@@ -55,3 +55,12 @@ def test_telemetry_rejects_negative_energy():
             energy_wh=-1.0, device_status=None, provider=InverterCloudProvider.SMA_SUNNY_PORTAL,
             external_device_id="inverter-1", source_reference="snapshot", mapping_version="sma-v1",
         )
+
+
+def test_readable_contract_never_includes_credentials_or_control_fields():
+    from app.inverter_cloud import MANUAL_PLANT_PROFILE_FIELDS, readable_fields_for
+    fields = readable_fields_for(InverterCloudProvider.DEYE_CLOUD)
+    assert {"ac_power_w", "historical_intervals", "alarm_state"} <= fields
+    assert "password" not in fields
+    assert "control" not in fields
+    assert "meter_boundary" in MANUAL_PLANT_PROFILE_FIELDS

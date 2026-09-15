@@ -111,3 +111,20 @@ class InverterTelemetry:
 def profile_for(provider: InverterCloudProvider) -> ProviderProfile:
     """Return the fixed first-wave provider profile without network discovery."""
     return PROVIDER_PROFILES[provider]
+
+READABLE_TELEMETRY_FIELDS = frozenset({
+    "native_plant_id", "native_device_id", "observed_at_utc", "retrieved_at_utc",
+    "ac_power_w", "energy_wh", "device_status", "alarm_state", "battery_power_w",
+    "grid_power_w", "historical_intervals",
+})
+
+MANUAL_PLANT_PROFILE_FIELDS = frozenset({
+    "latitude", "longitude", "timezone_name", "capacity_ac_kw", "tilt_deg", "azimuth_deg",
+    "mounting_type", "meter_boundary", "commissioning_date", "operator_notes",
+})
+
+
+def readable_fields_for(provider: InverterCloudProvider) -> frozenset[str]:
+    """Return the canonical read-only field vocabulary, pending provider mapping review."""
+    profile_for(provider)
+    return READABLE_TELEMETRY_FIELDS

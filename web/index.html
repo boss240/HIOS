@@ -48,8 +48,9 @@
       <form class="quick-id-form" id="quickIdForm">
         <strong>Швидко за ID</strong>
         <label>Провайдер<select id="quickProvider"><option value="deye_cloud">Deye Cloud</option></select></label>
-        <label>ID станції у хмарі<input id="quickExternalId" required placeholder="Наприклад, 123456"></label>
-        <button type="submit">Додати за ID</button><span id="quickIdStatus" role="status"></span>
+        <label>ID або посилання Deye Cloud<input id="quickExternalId" required placeholder="ID 61205012 або посилання на станцію"></label>
+        <button type="submit">Додати СЕС</button><span id="quickIdStatus" role="status"></span>
+        <p>Вставте номер станції або повне посилання зі сторінки Deye Cloud. Дані доступу тут не вводяться.</p>
       </form>      <div class="asset-list" id="assetList"><p class="empty-state">Завантаження реєстру…</p></div>
       <form class="asset-form" id="assetForm" hidden>
         <label>Назва СЕС<input name="name" required maxlength="120" placeholder="Наприклад, СЕС Озерна"></label>

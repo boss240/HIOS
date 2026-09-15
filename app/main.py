@@ -51,8 +51,10 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             supplied = base64.b64decode(encoded, validate=True).decode("utf-8")
         except (ValueError, UnicodeDecodeError):
             return False
+        # compare_digest() only accepts ASCII str inputs. Basic Auth is UTF-8,
+        # so compare the encoded values to support non-ASCII dashboard secrets.
         expected = f"{dashboard_user}:{dashboard_password}"
-        return hmac.compare_digest(supplied, expected)
+        return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
 
     def error(request, status, code, message):
         headers = {"WWW-Authenticate": "Bearer"} if status == 401 else {}

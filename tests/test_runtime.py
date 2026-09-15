@@ -8,6 +8,7 @@ import jwt
 import psycopg
 import pytest
 import yaml
+import app.main as main_module
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from fastapi.testclient import TestClient
@@ -793,3 +794,18 @@ def test_dashboard_can_register_a_plant_by_deye_station_link(db, keys, monkeypat
         assert response.status_code == 201
         plant = dashboard.get("/dashboard/plants", auth=("operator", "test-only-password")).json()["data"][0]
         assert plant["name"] == "Deye Cloud · 61205012"
+
+
+def test_dashboard_lists_deye_stations_only_after_explicit_read_confirmation(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    class FakeDeye:
+        def obtain_token(self): return "token"
+        def list_stations(self, token, *, page, size):
+            return {"data": {"records": [{"stationName": "Погреби", "stationId": 7}]}}
+    monkeypatch.setattr(main_module, "deye_client_from_environment", lambda: FakeDeye())
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        assert dashboard.post("/dashboard/deye/stations/discover", auth=("operator", "test-only-password"), json={}).status_code == 400
+        response = dashboard.post("/dashboard/deye/stations/discover", auth=("operator", "test-only-password"), json={"confirmReadOnly": True})
+        assert response.status_code == 200
+        assert response.json()["data"] == [{"id": "7", "name": "Погреби"}]

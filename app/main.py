@@ -18,6 +18,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 from app.deye_station_reference import station_id_from_reference
+from app.deye_discovery import client_from_environment as deye_client_from_environment, discover_stations
+from app.deye_openapi import DeyeApiError
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.inverter_connection_request import list_connection_requests, request_connection
@@ -250,6 +252,20 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except (TypeError, ValueError):
             raise HTTPException(400)
         return {"data": {"plantId": plant_id, "requestId": str(item.request_id), "status": item.status}}
+
+    @api.post("/dashboard/deye/stations/discover", include_in_schema=False)
+    def dashboard_discover_deye_stations(request: Request, body: dict = Body(...)):
+        """Return Deye stations only after an explicit read-only operator action."""
+        dashboard_context(request)
+        if body.get("confirmReadOnly") is not True:
+            raise HTTPException(400)
+        try:
+            candidates = discover_stations(deye_client_from_environment())
+        except ValueError:
+            raise HTTPException(503, detail="Deye discovery is not configured")
+        except DeyeApiError:
+            raise HTTPException(502, detail="Deye discovery could not be completed")
+        return {"data": [{"id": str(item.station_id), "name": item.name} for item in candidates]}
     @api.get("/dashboard/plants", include_in_schema=False)
     def dashboard_plants(request: Request):
         tenant, subject = dashboard_context(request)

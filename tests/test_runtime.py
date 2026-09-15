@@ -674,6 +674,15 @@ def test_dashboard_can_require_basic_access(keys, monkeypatch):
         assert granted.status_code == 200
         assert "HIOS Forecast" in granted.text
 
+
+def test_dashboard_basic_access_supports_utf8_credentials(keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "оператор")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "надійний-пароль")
+    with TestClient(create_app("postgresql://invalid", keys[1], "hios-test", "hios-api")) as guarded:
+        response = guarded.get("/", auth=("оператор", "надійний-пароль"))
+        assert response.status_code == 200
+        assert "HIOS Forecast" in response.text
+
 def test_real_http_server(db, keys):
     import socket
     import threading

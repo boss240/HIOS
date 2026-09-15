@@ -58,6 +58,14 @@
         <label class="asset-notes">Нотатка оператора<textarea name="operatorNotes" maxlength="2000" placeholder="Особливості об’єкта, які не видно у хмарі"></textarea></label>
         <div class="asset-actions"><button type="submit">Створити об’єкт</button><span id="assetFormStatus" role="status"></span></div>
       </form>
+      <form class="cloud-form" id="cloudForm" hidden>
+        <input type="hidden" id="cloudPlantId">
+        <label>Хмара інвертора<select id="cloudProvider">
+          <option value="deye_cloud">Deye Cloud</option><option value="fronius_solar_web">Fronius Solar.web</option><option value="goodwe_sems">GoodWe SEMS</option><option value="growatt_shineserver">Growatt ShineServer</option><option value="huawei_fusionsolar">Huawei FusionSolar</option><option value="sma_sunny_portal">SMA Sunny Portal</option><option value="solaredge_one">SolarEdge One</option><option value="solis_cloud">Solis Cloud</option><option value="sungrow_isolarcloud">Sungrow iSolarCloud</option><option value="victron_vrm">Victron VRM</option>
+        </select></label>
+        <button type="submit">Почати read-only підключення</button>
+        <p id="cloudFormStatus">Пароль не вводиться. Наступний етап — захищене підтвердження доступу та автоматичне discovery.</p>
+      </form>
     </section>
     <section class="metrics" aria-live="polite">
       <article><span>Очікувана енергія</span><strong id="energyValue">53.1 <small>kWh</small></strong><p id="energyNote">Наступні 24 години</p></article>

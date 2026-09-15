@@ -60,3 +60,11 @@ assetForm.addEventListener('submit', async event => {
   catch { status.textContent='Не вдалося зберегти. Перевірте підключення та значення.'; }
 });
 loadAssets();
+
+function renderAssetCards(items){
+  assetList.innerHTML=items.length?items.map(item=>`<article class="asset-item"><strong>${escapeHtml(item.name)}</strong><span>${item.capacityKw==null?'Потужність уточнюється':item.capacityKw+' кВт DC'}</span><button class="connect-cloud" data-plant-id="${escapeHtml(item.id)}">Підключити хмару інвертора</button></article>`).join(''):'<p class="empty-state">Поки що немає доданих об’єктів.</p>';
+  document.querySelectorAll('.connect-cloud').forEach(button=>button.addEventListener('click',()=>{ $('#cloudPlantId').value=button.dataset.plantId; $('#cloudForm').hidden=false; $('#cloudProvider').focus(); }));
+}
+const originalDisplayAssets=displayAssets;
+displayAssets=renderAssetCards;
+$('#cloudForm').addEventListener('submit',async event=>{event.preventDefault();const status=$('#cloudFormStatus');status.textContent='Створення запиту…';try{const id=$('#cloudPlantId').value;const response=await fetch(`/dashboard/plants/${encodeURIComponent(id)}/cloud-requests`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:$('#cloudProvider').value})});if(!response.ok)throw new Error();status.textContent='Запит створено. Система очікує захищеного підтвердження доступу.';}catch{status.textContent='Не вдалося створити запит.';}});

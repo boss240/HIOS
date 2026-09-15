@@ -35,3 +35,25 @@ $('#showProviderForm').addEventListener('click',()=>{$('#providerForm').hidden=!
 $('#providerForm').addEventListener('submit',e=>{e.preventDefault();const id=$('#providerSelect').value;if(id){state.channels.push(id);$('#providerForm').hidden=true;renderProviders();renderChart()}});
 $('#themeToggle').addEventListener('click',()=>document.body.classList.toggle('bright'));
 renderProviders();renderChart();
+
+const assetForm = $('#assetForm');
+const assetList = $('#assetList');
+function displayAssets(items){
+  assetList.innerHTML = items.length ? items.map(item => `<article class="asset-item"><strong>${escapeHtml(item.name)}</strong><span>${item.capacityKw == null ? 'Потужність уточнюється' : item.capacityKw + ' кВт DC'}</span></article>`).join('') : '<p class="empty-state">Поки що немає доданих об’єктів.</p>';
+}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));}
+async function loadAssets(){
+  try { const response = await fetch('/dashboard/plants'); if (!response.ok) throw new Error(); displayAssets((await response.json()).data); }
+  catch { assetList.innerHTML = '<p class="empty-state">Реєстр стане доступним після підключення сховища даних.</p>'; }
+}
+function optionalNumber(form, field){const value=new FormData(form).get(field);return value === '' ? undefined : Number(value)}
+$('#showAssetForm').addEventListener('click',()=>{assetForm.hidden=!assetForm.hidden; if(!assetForm.hidden) assetForm.querySelector('[name=name]').focus();});
+assetForm.addEventListener('submit', async event => {
+  event.preventDefault(); const status=$('#assetFormStatus'); status.textContent='Збереження…';
+  const form=new FormData(assetForm); const payload={name:form.get('name'), timezone:'Europe/Kyiv'};
+  ['capacityKw','latitude','longitude','capacityAcKw','tiltDeg','azimuthDeg'].forEach(key=>{const value=optionalNumber(assetForm,key);if(value!==undefined)payload[key]=value});
+  ['meterBoundary','operatorNotes'].forEach(key=>{const value=String(form.get(key)||'').trim();if(value)payload[key]=value});
+  try { const response=await fetch('/dashboard/plants',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); if(!response.ok) throw new Error(); assetForm.reset();assetForm.hidden=true;status.textContent='Об’єкт створено.';await loadAssets(); }
+  catch { status.textContent='Не вдалося зберегти. Перевірте підключення та значення.'; }
+});
+loadAssets();

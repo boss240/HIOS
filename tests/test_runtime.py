@@ -732,3 +732,17 @@ def test_plant_onboarding_api_creates_and_exposes_only_metadata(client, keys):
     assert read.status_code == 200
     assert read.json()["data"]["cloudBindings"][0]["readOnly"] is True
     assert client.get(f"/plants/{plant_id}/onboarding", headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404
+
+
+def test_dashboard_can_create_its_isolated_plant_registry(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        created = dashboard.post("/dashboard/plants", auth=("operator", "test-only-password"), json={
+            "name": "Dashboard plant", "capacityKw": 25, "latitude": 50.2, "longitude": 30.2,
+        })
+        assert created.status_code == 201
+        plants = dashboard.get("/dashboard/plants", auth=("operator", "test-only-password"))
+        assert plants.status_code == 200
+        assert plants.json()["data"][0]["name"] == "Dashboard plant"
+        assert dashboard.get("/dashboard/plants").status_code == 401

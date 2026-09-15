@@ -217,6 +217,37 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except PermissionError:
             raise HTTPException(404)
         return {"data": {"id": str(binding_id), "readOnly": True}}
+
+    def dashboard_context(request: Request) -> tuple[str, str]:
+        """Resolve the one dashboard operator to an isolated tenant, after Basic authentication."""
+        if not dashboard_user or not dashboard_authorized(request):
+            raise HTTPException(401)
+        tenant = "dashboard-" + __import__("hashlib").sha256(dashboard_user.encode("utf-8")).hexdigest()[:24]
+        with psycopg.connect(database_url, connect_timeout=5) as connection:
+            connection.execute("INSERT INTO tenant(id) VALUES (%s) ON CONFLICT DO NOTHING", (tenant,))
+            connection.execute("""INSERT INTO membership(tenant_id,subject,active) VALUES (%s,%s,true)
+                                ON CONFLICT (tenant_id,subject) DO NOTHING""", (tenant, dashboard_user))
+        return tenant, dashboard_user
+
+    @api.get("/dashboard/plants", include_in_schema=False)
+    def dashboard_plants(request: Request):
+        tenant, subject = dashboard_context(request)
+        with psycopg.connect(database_url, connect_timeout=5) as connection:
+            rows = connection.execute(
+                "SELECT public_id,name,capacity_kw FROM plant WHERE tenant_id=%s ORDER BY created_at DESC",
+                (tenant,),
+            ).fetchall()
+        return {"data": [{"id": row[0], "name": row[1], "capacityKw": row[2]} for row in rows]}
+
+    @api.post("/dashboard/plants", status_code=201, include_in_schema=False)
+    def dashboard_register_plant(request: Request, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        try:
+            plant_id = create_plant(database_url=database_url, subject=subject, tenant_id=tenant,
+                name=body.get("name"), capacity_kw=body.get("capacityKw"), profile=onboarding_profile(body))
+        except (TypeError, ValueError):
+            raise HTTPException(400)
+        return {"data": {"id": plant_id}}
     @api.get("/forecast-runs/{run_id}")
     def forecast_run(request: Request, run_id: str):
         """Return one authorized immutable forecast run and a bounded point page."""

@@ -39,6 +39,26 @@
       </div>
     </section>
 
+    <section class="asset-registry" id="assets">
+      <div class="card-head">
+        <div><p class="eyebrow">ASSET REGISTRY</p><h2>Об’єкти портфеля</h2></div>
+        <button class="text-button" id="showAssetForm">+ Додати СЕС</button>
+      </div>
+      <p class="card-copy">Внесіть лише паспортні дані, яких немає у хмарі інвертора. Технічні дані, фактичну генерацію й стан система зчитує після підтвердженої read-only прив’язки.</p>
+      <div class="asset-list" id="assetList"><p class="empty-state">Завантаження реєстру…</p></div>
+      <form class="asset-form" id="assetForm" hidden>
+        <label>Назва СЕС<input name="name" required maxlength="120" placeholder="Наприклад, СЕС Озерна"></label>
+        <label>Потужність DC, кВт<input name="capacityKw" type="number" min="0" step="0.1" placeholder="30"></label>
+        <label>Широта<input name="latitude" type="number" min="-90" max="90" step="0.00001" placeholder="50.54085"></label>
+        <label>Довгота<input name="longitude" type="number" min="-180" max="180" step="0.00001" placeholder="30.62605"></label>
+        <label>Потужність AC, кВт<input name="capacityAcKw" type="number" min="0" step="0.1"></label>
+        <label>Нахил, °<input name="tiltDeg" type="number" min="0" max="90" step="0.1"></label>
+        <label>Азимут, °<input name="azimuthDeg" type="number" min="0" max="359.99" step="0.1"></label>
+        <label>Межа обліку<input name="meterBoundary" maxlength="120" placeholder="Віддача в мережу"></label>
+        <label class="asset-notes">Нотатка оператора<textarea name="operatorNotes" maxlength="2000" placeholder="Особливості об’єкта, які не видно у хмарі"></textarea></label>
+        <div class="asset-actions"><button type="submit">Створити об’єкт</button><span id="assetFormStatus" role="status"></span></div>
+      </form>
+    </section>
     <section class="metrics" aria-live="polite">
       <article><span>Очікувана енергія</span><strong id="energyValue">53.1 <small>kWh</small></strong><p id="energyNote">Наступні 24 години</p></article>
       <article><span>Пікова потужність</span><strong id="peakValue">8.9 <small>kW</small></strong><p id="peakNote">Оцінка MODEL-001</p></article>

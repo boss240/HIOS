@@ -746,3 +746,18 @@ def test_dashboard_can_create_its_isolated_plant_registry(db, keys, monkeypatch)
         assert plants.status_code == 200
         assert plants.json()["data"][0]["name"] == "Dashboard plant"
         assert dashboard.get("/dashboard/plants").status_code == 401
+
+
+def test_dashboard_can_select_weather_research_channel(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        response = dashboard.post("/dashboard/weather-providers", auth=("operator", "test-only-password"), json={
+            "provider": "eosda_weather", "role": "research"
+        })
+        assert response.status_code == 201
+        channels = dashboard.get("/dashboard/weather-providers", auth=("operator", "test-only-password"))
+        assert channels.json()["data"][0]["id"] == "eosda_weather"
+        assert dashboard.post("/dashboard/weather-providers", auth=("operator", "test-only-password"), json={
+            "provider": "not-real", "role": "research"
+        }).status_code == 400

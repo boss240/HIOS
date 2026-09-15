@@ -18,6 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
+from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -248,6 +249,26 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except (TypeError, ValueError):
             raise HTTPException(400)
         return {"data": {"id": plant_id}}
+    @api.get("/dashboard/weather-providers", include_in_schema=False)
+    def dashboard_weather_providers(request: Request):
+        tenant, subject = dashboard_context(request)
+        channels = list_channels(database_url=database_url, tenant_id=tenant, subject=subject)
+        return {"data": [
+            {"id": channel.provider, "name": PROVIDER_CATALOG[channel.provider].name,
+             "detail": PROVIDER_CATALOG[channel.provider].summary, "category": PROVIDER_CATALOG[channel.provider].category,
+             "role": channel.role, "status": channel.status}
+            for channel in channels
+        ]}
+
+    @api.post("/dashboard/weather-providers", status_code=201, include_in_schema=False)
+    def dashboard_weather_provider(request: Request, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        try:
+            channel = configure_channel(database_url=database_url, tenant_id=tenant, subject=subject,
+                provider=body.get("provider"), role=body.get("role"), status="candidate")
+        except ValueError:
+            raise HTTPException(400)
+        return {"data": {"id": channel.provider, "role": channel.role, "status": channel.status}}
     @api.get("/forecast-runs/{run_id}")
     def forecast_run(request: Request, run_id: str):
         """Return one authorized immutable forecast run and a bounded point page."""

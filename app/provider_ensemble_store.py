@@ -39,7 +39,7 @@ def replace_profile(*, database_url: str, subject: str, tenant_id: str,
             "DELETE FROM provider_ensemble_profile WHERE tenant_id=%s AND plant_id=%s",
             (tenant_id, profile.plant_key),
         )
-        connection.executemany(
+        connection.cursor().executemany(
             """INSERT INTO provider_ensemble_profile(
                    tenant_id, plant_id, provider, pair_count, mae_kw, bias_kw, correlation,
                    weight, calibrated_at_utc

@@ -3,6 +3,7 @@ import base64
 import hmac
 import os
 from pathlib import Path
+from datetime import date
 from uuid import UUID, uuid4
 
 import jwt
@@ -10,10 +11,13 @@ import psycopg
 import yaml
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Body
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
+from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -160,6 +164,59 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         data = [{k: v for k, v in plant.items() if v is not None} for plant in row[1]]
         return {"data": data, **page}
 
+    def onboarding_profile(body: dict) -> PlantProfileInput:
+        fields = {
+            "latitude": body.get("latitude"), "longitude": body.get("longitude"),
+            "timezone_name": body.get("timezone"), "capacity_ac_kw": body.get("capacityAcKw"),
+            "tilt_deg": body.get("tiltDeg"), "azimuth_deg": body.get("azimuthDeg"),
+            "mounting_type": body.get("mountingType"), "meter_boundary": body.get("meterBoundary"),
+            "operator_notes": body.get("operatorNotes"),
+        }
+        commissioned = body.get("commissioningDate")
+        if commissioned is not None:
+            if not isinstance(commissioned, str):
+                raise ValueError("commissioningDate must be ISO date")
+            fields["commissioning_date"] = date.fromisoformat(commissioned)
+        return PlantProfileInput(**fields)
+
+    @api.post("/plants", status_code=201)
+    def register_plant(request: Request, body: dict = Body(...)):
+        tenant, subject = authenticated_context(request)
+        try:
+            plant_id = create_plant(database_url=database_url, subject=subject, tenant_id=tenant,
+                name=body.get("name"), capacity_kw=body.get("capacityKw"), profile=onboarding_profile(body))
+        except (TypeError, ValueError):
+            raise HTTPException(400)
+        return {"data": {"id": plant_id}}
+
+    @api.get("/plants/{plant_id}/onboarding")
+    def plant_onboarding(request: Request, plant_id: str):
+        tenant, subject = authenticated_context(request)
+        try:
+            return {"data": get_onboarding(database_url=database_url, subject=subject,
+                                              tenant_id=tenant, plant_id=plant_id)}
+        except PermissionError:
+            raise HTTPException(404)
+
+    @api.post("/plants/{plant_id}/cloud-bindings", status_code=201)
+    def register_cloud_binding(request: Request, plant_id: str, body: dict = Body(...)):
+        tenant, subject = authenticated_context(request)
+        try:
+            binding = InverterCloudBinding(
+                tenant_id=tenant, plant_id=plant_id,
+                provider=InverterCloudProvider(body.get("provider")),
+                external_plant_id=body.get("externalPlantId"),
+                credential_reference=body.get("credentialReference"),
+                consent_record_reference=body.get("consentRecordReference"),
+                mapping_version=body.get("mappingVersion"),
+            )
+            binding_id = add_read_only_binding(database_url=database_url, subject=subject, binding=binding,
+                                               discovery_status=body.get("discoveryStatus", "pending"))
+        except (TypeError, ValueError):
+            raise HTTPException(400)
+        except PermissionError:
+            raise HTTPException(404)
+        return {"data": {"id": str(binding_id), "readOnly": True}}
     @api.get("/forecast-runs/{run_id}")
     def forecast_run(request: Request, run_id: str):
         """Return one authorized immutable forecast run and a bounded point page."""

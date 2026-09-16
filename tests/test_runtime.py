@@ -809,3 +809,25 @@ def test_dashboard_lists_deye_stations_only_after_explicit_read_confirmation(db,
         response = dashboard.post("/dashboard/deye/stations/discover", auth=("operator", "test-only-password"), json={"confirmReadOnly": True})
         assert response.status_code == 200
         assert response.json()["data"] == [{"id": "7", "name": "Погреби"}]
+
+
+def test_hourly_plan_api_and_xlsx_export_are_tenant_scoped(client, db, keys):
+    run = forecast_run(uuid4())
+    create_or_get_run(db, "alice", run)
+    publish_points(db, "alice", "a", run.run_id, (ForecastPoint(
+        interval_start_utc=run.forecast_origin_utc,
+        interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
+        predicted_power_kw=12.5, predicted_energy_kwh=12.5,
+        quality_flags=("source_verified",),
+    ),))
+    payload = {"consumptionKwh": [20], "rdnPriceUahPerKwh": [5.5]}
+    response = client.post(f"/forecast-runs/{run.run_id}/hourly-plan", json=payload, headers=headers(keys))
+    assert response.status_code == 200
+    assert response.json()["data"][0]["netGridKwh"] == 7.5
+    assert response.json()["data"][0]["estimatedImportCostUah"] == 41.25
+    export = client.post(f"/forecast-runs/{run.run_id}/hourly-plan/export", json={**payload, "format": "xlsx"}, headers=headers(keys))
+    assert export.status_code == 200
+    assert export.headers["content-type"].startswith("application/vnd.openxmlformats-officedocument")
+    assert export.content[:2] == b"PK"
+    assert client.post(f"/forecast-runs/{run.run_id}/hourly-plan", json=payload,
+        headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404

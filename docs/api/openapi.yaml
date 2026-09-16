@@ -312,6 +312,67 @@ paths:
               schema: {$ref: '#/components/schemas/Error'}
               example:
                 error: {code: INTERNAL_ERROR, message: Internal error, requestId: req-009}
+  /forecast-runs/{run_id}/hourly-plan:
+    post:
+      summary: Compose a tenant-scoped hourly generation, consumption and RDN scenario
+      description: Uses immutable forecast points and caller-supplied scenarios; it cannot bid, trade, control equipment or alter the forecast.
+      operationId: composeHourlyPlan
+      tags: [forecasting, planning]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: run_id, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json: {schema: {$ref: '#/components/schemas/HourlyPlanRequest'}}
+      responses:
+        '200':
+          description: One row per forecast interval.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HourlyPlanResponse'}
+              example:
+                data:
+                  - intervalStartUtc: '2026-09-16T00:00:00+00:00'
+                    intervalEndUtc: '2026-09-16T01:00:00+00:00'
+                    predictedPowerKw: 4.2
+                    predictedGenerationKwh: 4.2
+                    consumptionKwh: 6.0
+                    rdnPriceUahPerKwh: 5.5
+                    netGridKwh: 1.8
+                    estimatedImportCostUah: 9.9
+                    estimatedExportValueUah: 0.0
+                    qualityFlags: [source_verified]
+        '400': {description: Invalid scenario values or unmatched price coverage}
+        '401': {description: Authentication required}
+        '403': {description: Tenant membership is inactive}
+        '404': {description: Forecast run is not visible to this tenant}
+  /forecast-runs/{run_id}/hourly-plan/export:
+    post:
+      summary: Export a tenant-scoped hourly plan as CSV or Excel
+      description: Uses the same scenario contract. Format is xlsx by default or csv; no market action occurs.
+      operationId: exportHourlyPlan
+      tags: [forecasting, planning]
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: run_id, in: path, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json: {schema: {$ref: '#/components/schemas/HourlyPlanExportRequest'}}
+      responses:
+        '200':
+          description: Downloadable plan.
+          content:
+            text/csv:
+              schema: {type: string, format: binary}
+              example: 'interval_start_utc,predicted_generation_kwh'
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+              example: 'PK'
+        '400': {description: Invalid scenario values or export format}
+        '401': {description: Authentication required}
+        '404': {description: Forecast run is not visible to this tenant}
 components:
   securitySchemes:
     bearerAuth:
@@ -352,6 +413,40 @@ components:
             $ref: '#/components/schemas/Plant'
         limit: {type: integer, minimum: 1, maximum: 100}
         offset: {type: integer, minimum: 0}
+    HourlyPlanRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        consumptionKwh: {type: array, maxItems: 744, items: {type: number, minimum: 0}}
+        rdnPriceUahPerKwh: {type: array, maxItems: 744, items: {type: number, minimum: 0}}
+        rdnScenarioId: {type: string, format: uuid}
+      description: Provide either rdnPriceUahPerKwh or rdnScenarioId, never both.
+    HourlyPlanExportRequest:
+      allOf:
+        - $ref: '#/components/schemas/HourlyPlanRequest'
+        - type: object
+          properties: {format: {type: string, enum: [csv, xlsx], default: xlsx}}
+    HourlyPlanPoint:
+      type: object
+      additionalProperties: false
+      required: [intervalStartUtc, intervalEndUtc, predictedPowerKw, predictedGenerationKwh, qualityFlags]
+      properties:
+        intervalStartUtc: {type: string, format: date-time}
+        intervalEndUtc: {type: string, format: date-time}
+        predictedPowerKw: {type: number, minimum: 0}
+        predictedGenerationKwh: {type: number, minimum: 0}
+        consumptionKwh: {type: number, minimum: 0, nullable: true}
+        rdnPriceUahPerKwh: {type: number, minimum: 0, nullable: true}
+        netGridKwh: {type: number, nullable: true}
+        estimatedImportCostUah: {type: number, minimum: 0, nullable: true}
+        estimatedExportValueUah: {type: number, minimum: 0, nullable: true}
+        qualityFlags: {type: array, items: {type: string}}
+    HourlyPlanResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: {type: array, maxItems: 744, items: {$ref: '#/components/schemas/HourlyPlanPoint'}}
     ForecastPoint:
       type: object
       additionalProperties: false

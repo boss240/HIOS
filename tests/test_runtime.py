@@ -831,3 +831,56 @@ def test_hourly_plan_api_and_xlsx_export_are_tenant_scoped(client, db, keys):
     assert export.content[:2] == b"PK"
     assert client.post(f"/forecast-runs/{run.run_id}/hourly-plan", json=payload,
         headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404
+
+
+def test_dashboard_builds_and_exports_a_tenant_scoped_hourly_plan(db, keys, monkeypatch):
+    import hashlib
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    tenant = "dashboard-" + hashlib.sha256(b"operator").hexdigest()[:24]
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        created = dashboard.post("/dashboard/plants", auth=("operator", "test-only-password"), json={"name": "Dashboard plan"})
+        plant_id = created.json()["data"]["id"]
+        forecast = forecast_run(uuid4(), tenant_id=tenant, plant_id=plant_id)
+        create_or_get_run(db, "operator", forecast)
+        publish_points(db, "operator", tenant, forecast.run_id, (ForecastPoint(
+            interval_start_utc=forecast.forecast_origin_utc,
+            interval_end_utc=forecast.forecast_origin_utc + timedelta(hours=1),
+            predicted_power_kw=10, predicted_energy_kwh=10,
+        ),))
+        runs = dashboard.get(f"/dashboard/plants/{plant_id}/forecast-runs", auth=("operator", "test-only-password"))
+        assert runs.status_code == 200
+        assert runs.json()["data"][0]["id"] == str(forecast.run_id)
+        payload = {"consumptionKwh": [12], "rdnPriceUahPerKwh": [5]}
+        plan = dashboard.post(f"/dashboard/forecast-runs/{forecast.run_id}/hourly-plan", auth=("operator", "test-only-password"), json=payload)
+        assert plan.status_code == 200
+        assert plan.json()["data"][0]["estimatedImportCostUah"] == 10
+        export = dashboard.post(f"/dashboard/forecast-runs/{forecast.run_id}/hourly-plan/export", auth=("operator", "test-only-password"), json={**payload, "format": "xlsx"})
+        assert export.status_code == 200 and export.content[:2] == b"PK"
+        assert dashboard.get(f"/dashboard/plants/{plant_id}/forecast-runs").status_code == 401
+
+
+def test_dashboard_can_save_rdn_scenario_and_apply_it_to_a_forecast(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "price-operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    import hashlib
+    tenant = "dashboard-" + hashlib.sha256(b"price-operator").hexdigest()[:24]
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        plant = dashboard.post("/dashboard/plants", auth=("price-operator", "test-only-password"), json={"name": "Price plan"}).json()["data"]["id"]
+        run = forecast_run(uuid4(), tenant_id=tenant, plant_id=plant)
+        create_or_get_run(db, "price-operator", run)
+        publish_points(db, "price-operator", tenant, run.run_id, (ForecastPoint(
+            interval_start_utc=run.forecast_origin_utc, interval_end_utc=run.forecast_origin_utc + timedelta(hours=1),
+            predicted_power_kw=3, predicted_energy_kwh=3),))
+        scenario = dashboard.post("/dashboard/rdn-scenarios", auth=("price-operator", "test-only-password"), json={
+            "name": "RDN test", "sourceReference": "operator import",
+            "points": [{"intervalStartUtc": run.forecast_origin_utc.isoformat(), "priceUahPerKwh": 7.25}],
+        })
+        assert scenario.status_code == 201
+        scenario_id = scenario.json()["data"]["id"]
+        listed = dashboard.get("/dashboard/rdn-scenarios", auth=("price-operator", "test-only-password"))
+        assert listed.json()["data"][0]["name"] == "RDN test"
+        plan = dashboard.post(f"/dashboard/forecast-runs/{run.run_id}/hourly-plan", auth=("price-operator", "test-only-password"),
+            json={"consumptionKwh": [5], "rdnScenarioId": scenario_id})
+        assert plan.status_code == 200
+        assert plan.json()["data"][0]["estimatedImportCostUah"] == 14.5

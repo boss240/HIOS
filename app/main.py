@@ -3,7 +3,7 @@ import base64
 import hmac
 import os
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID, uuid4
 
 import jwt
@@ -12,7 +12,7 @@ import yaml
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from fastapi import FastAPI, Request, HTTPException, Body
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -22,6 +22,7 @@ from app.deye_discovery import client_from_environment as deye_client_from_envir
 from app.deye_openapi import DeyeApiError
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
+from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
 from app.inverter_connection_request import list_connection_requests, request_connection
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -368,6 +369,64 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             raise HTTPException(404)
         return {"data": row[1], **page}
 
+    def authorized_forecast_points(tenant: str, subject: str, run_uuid: UUID):
+        """Read all immutable points for one tenant-owned forecast run."""
+        with psycopg.connect(database_url, connect_timeout=5) as connection:
+            row = connection.execute(
+                """WITH allowed AS (
+                    SELECT 1 FROM membership WHERE tenant_id=%s AND subject=%s AND active
+                ), owned_run AS (
+                    SELECT run_id FROM forecast_run WHERE run_id=%s AND tenant_id=%s
+                      AND EXISTS (SELECT 1 FROM allowed)
+                ) SELECT EXISTS (SELECT 1 FROM allowed), EXISTS (SELECT 1 FROM owned_run),
+                    COALESCE((SELECT json_agg(json_build_object(
+                        'intervalStartUtc', p.interval_start_utc, 'intervalEndUtc', p.interval_end_utc,
+                        'predictedPowerKw', p.predicted_power_kw, 'predictedEnergyKwh', p.predicted_energy_kwh,
+                        'qualityFlags', p.quality_flags
+                    ) ORDER BY p.interval_start_utc) FROM forecast_point p
+                    JOIN owned_run r ON r.run_id=p.run_id), '[]'::json)""",
+                (tenant, subject, run_uuid, tenant),
+            ).fetchone()
+        if not row[0]:
+            raise HTTPException(403)
+        if not row[1]:
+            raise HTTPException(404)
+        def timestamp(value):
+            return datetime.fromisoformat(value) if isinstance(value, str) else value
+        return tuple(HourlyForecast(
+            interval_start_utc=timestamp(item["intervalStartUtc"]), interval_end_utc=timestamp(item["intervalEndUtc"]),
+            predicted_power_kw=float(item["predictedPowerKw"]), predicted_energy_kwh=float(item["predictedEnergyKwh"]),
+            quality_flags=tuple(item["qualityFlags"] or ()),
+        ) for item in row[2])
+
+    def requested_plan(request: Request, run_id: str, body: dict):
+        tenant, subject = authenticated_context(request)
+        try:
+            run_uuid = UUID(run_id)
+            return hourly_plan(authorized_forecast_points(tenant, subject, run_uuid),
+                consumption_kwh=body.get("consumptionKwh"),
+                rdn_price_uah_per_kwh=body.get("rdnPriceUahPerKwh"))
+        except ValueError as error:
+            raise HTTPException(400, detail=str(error))
+
+    @api.post("/forecast-runs/{run_id}/hourly-plan")
+    def forecast_hourly_plan(request: Request, run_id: str, body: dict = Body(...)):
+        """Compose a non-trading hourly operating plan from client-owned scenarios."""
+        return {"data": plan_rows(requested_plan(request, run_id, body))}
+
+    @api.post("/forecast-runs/{run_id}/hourly-plan/export")
+    def export_forecast_hourly_plan(request: Request, run_id: str, body: dict = Body(...)):
+        """Download a customer scenario in CSV or XLSX; no market action is performed."""
+        plan = requested_plan(request, run_id, body)
+        export_format = body.get("format", "xlsx")
+        filename = f"hios-hourly-plan-{run_id}"
+        if export_format == "csv":
+            return Response(csv_export(plan), media_type="text/csv; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'})
+        if export_format == "xlsx":
+            return Response(xlsx_export(plan), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f'attachment; filename="{filename}.xlsx"'})
+        raise HTTPException(400, detail="format must be csv or xlsx")
     @api.get("/plants/{plant_id}/forecast-runs")
     def plant_forecast_runs(request: Request, plant_id: str):
         """Return a bounded newest-first list of immutable runs for one owned plant."""

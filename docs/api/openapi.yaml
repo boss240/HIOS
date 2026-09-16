@@ -326,7 +326,23 @@ paths:
         content:
           application/json: {schema: {$ref: '#/components/schemas/HourlyPlanRequest'}}
       responses:
-        '200': {description: One row per forecast interval, content: {application/json: {schema: {$ref: '#/components/schemas/HourlyPlanResponse'}}}}
+        '200':
+          description: One row per forecast interval.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HourlyPlanResponse'}
+              example:
+                data:
+                  - intervalStartUtc: '2026-09-16T00:00:00+00:00'
+                    intervalEndUtc: '2026-09-16T01:00:00+00:00'
+                    predictedPowerKw: 4.2
+                    predictedGenerationKwh: 4.2
+                    consumptionKwh: 6.0
+                    rdnPriceUahPerKwh: 5.5
+                    netGridKwh: 1.8
+                    estimatedImportCostUah: 9.9
+                    estimatedExportValueUah: 0.0
+                    qualityFlags: [source_verified]
         '400': {description: Invalid scenario values or unmatched price coverage}
         '401': {description: Authentication required}
         '403': {description: Tenant membership is inactive}
@@ -345,7 +361,15 @@ paths:
         content:
           application/json: {schema: {$ref: '#/components/schemas/HourlyPlanExportRequest'}}
       responses:
-        '200': {description: Downloadable plan, content: {text/csv: {schema: {type: string, format: binary}}, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {schema: {type: string, format: binary}}}}
+        '200':
+          description: Downloadable plan.
+          content:
+            text/csv:
+              schema: {type: string, format: binary}
+              example: 'interval_start_utc,predicted_generation_kwh'
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+              example: 'PK'
         '400': {description: Invalid scenario values or export format}
         '401': {description: Authentication required}
         '404': {description: Forecast run is not visible to this tenant}

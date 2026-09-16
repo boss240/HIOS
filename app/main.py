@@ -328,6 +328,40 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except ValueError:
             raise HTTPException(400)
         return {"data": {"id": channel.provider, "role": channel.role, "status": channel.status}}
+    @api.get("/dashboard/plants/{plant_id}/forecast-runs", include_in_schema=False)
+    def dashboard_plant_forecast_runs(request: Request, plant_id: str):
+        tenant, subject = dashboard_context(request)
+        with psycopg.connect(database_url, connect_timeout=5) as connection:
+            rows = connection.execute(
+                """SELECT r.run_id, r.forecast_origin_utc, r.horizon_id, r.model_id, r.status,
+                          (SELECT count(*) FROM forecast_point p WHERE p.run_id=r.run_id)
+                   FROM forecast_run r JOIN membership m ON m.tenant_id=r.tenant_id
+                   WHERE r.tenant_id=%s AND r.plant_id=%s AND m.subject=%s AND m.active
+                   ORDER BY r.forecast_origin_utc DESC, r.run_id DESC LIMIT 50""",
+                (tenant, plant_id, subject),
+            ).fetchall()
+        return {"data": [{"id": str(row[0]), "forecastOriginUtc": row[1], "horizonId": row[2],
+                           "modelId": row[3], "status": row[4], "pointCount": row[5]} for row in rows]}
+
+    @api.post("/dashboard/forecast-runs/{run_id}/hourly-plan", include_in_schema=False)
+    def dashboard_hourly_plan(request: Request, run_id: str, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        return {"data": plan_rows(requested_plan_for_context(tenant, subject, run_id, body))}
+
+    @api.post("/dashboard/forecast-runs/{run_id}/hourly-plan/export", include_in_schema=False)
+    def dashboard_export_hourly_plan(request: Request, run_id: str, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        plan = requested_plan_for_context(tenant, subject, run_id, body)
+        export_format = body.get("format", "xlsx")
+        filename = f"hios-hourly-plan-{run_id}"
+        if export_format == "csv":
+            return Response(csv_export(plan), media_type="text/csv; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'})
+        if export_format == "xlsx":
+            return Response(xlsx_export(plan), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f'attachment; filename="{filename}.xlsx"'})
+        raise HTTPException(400, detail="format must be csv or xlsx")
+
     @api.get("/forecast-runs/{run_id}")
     def forecast_run(request: Request, run_id: str):
         """Return one authorized immutable forecast run and a bounded point page."""
@@ -399,8 +433,7 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             quality_flags=tuple(item["qualityFlags"] or ()),
         ) for item in row[2])
 
-    def requested_plan(request: Request, run_id: str, body: dict):
-        tenant, subject = authenticated_context(request)
+    def requested_plan_for_context(tenant: str, subject: str, run_id: str, body: dict):
         try:
             run_uuid = UUID(run_id)
             return hourly_plan(authorized_forecast_points(tenant, subject, run_uuid),
@@ -408,6 +441,10 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
                 rdn_price_uah_per_kwh=body.get("rdnPriceUahPerKwh"))
         except ValueError as error:
             raise HTTPException(400, detail=str(error))
+
+    def requested_plan(request: Request, run_id: str, body: dict):
+        tenant, subject = authenticated_context(request)
+        return requested_plan_for_context(tenant, subject, run_id, body)
 
     @api.post("/forecast-runs/{run_id}/hourly-plan")
     def forecast_hourly_plan(request: Request, run_id: str, body: dict = Body(...)):

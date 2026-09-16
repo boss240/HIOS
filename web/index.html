@@ -94,6 +94,20 @@
       <div class="chart-foot"><span id="chartCaption">Натисніть на годину, щоб побачити сценарій.</span><span class="provisional">● provisional preview</span></div>
     </section>
 
+    <section class="planning-card" id="hourlyPlanning">
+      <div class="card-head"><div><p class="eyebrow">OPERATING PLAN · RDN SCENARIO</p><h2>Погодинний баланс і вивантаження</h2></div></div>
+      <p class="card-copy">Оберіть фактичний forecast run, вставте значення по одному на рядок для кожної години та отримайте баланс мережі. Дані РДН — сценарій оператора; система не подає торгових заявок.</p>
+      <div class="planning-inputs">
+        <label>СЕС<select id="planPlant"><option value="">Оберіть об’єкт</option></select></label>
+        <label>Прогноз<select id="planRun" disabled><option value="">Спочатку оберіть СЕС</option></select></label>
+        <label>Споживання, кВт·год<textarea id="planConsumption" placeholder="12.5&#10;11.8&#10;…"></textarea></label>
+        <label>Ціна РДН, грн/кВт·год<textarea id="planRdnPrice" placeholder="5.86&#10;5.44&#10;…"></textarea></label>
+      </div>
+      <div class="asset-actions"><button type="button" id="buildHourlyPlan">Розрахувати план</button><button type="button" class="outline-button" id="exportHourlyPlan" disabled>Завантажити Excel</button><span id="planStatus" role="status"></span></div>
+      <div class="plan-summary" id="planSummary" hidden></div>
+      <div class="plan-table-wrap"><table id="planTable" hidden><thead><tr><th>Година UTC</th><th>СЕС, кВт·год</th><th>Споживання</th><th>Баланс мережі</th><th>РДН, грн</th><th>Імпорт, грн</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
     <section class="split-grid">
       <article class="provider-card" id="providers">
         <div class="card-head"><div><p class="eyebrow">FORECAST MOSAIC</p><h2>Постачальники погоди</h2></div><button class="text-button" id="showProviderForm">+ Додати канал</button></div>
@@ -128,5 +142,6 @@
   </main>
   <script src="/assets/app.js" defer></script>
   <script src="/assets/deye-discovery.js" defer></script>
+  <script src="/assets/hourly-planning-dashboard.js" defer></script>
 </body>
 </html>

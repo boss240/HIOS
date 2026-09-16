@@ -20,6 +20,7 @@ from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 from app.deye_station_reference import station_id_from_reference
 from app.deye_discovery import client_from_environment as deye_client_from_environment, discover_stations
 from app.deye_openapi import DeyeApiError
+from app.deye_telemetry import inspect_station_day
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
@@ -268,6 +269,24 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except DeyeApiError:
             raise HTTPException(502, detail="Deye discovery could not be completed")
         return {"data": [{"id": str(item.station_id), "name": item.name} for item in candidates]}
+
+    @api.post("/dashboard/deye/stations/{station_id}/telemetry-audit", include_in_schema=False)
+    def dashboard_audit_deye_telemetry(station_id: int, request: Request, body: dict = Body(...)):
+        """Read one past Deye day and return aggregate quality only; never controls or stores Deye data."""
+        dashboard_context(request)
+        if body.get("confirmReadOnly") is not True:
+            raise HTTPException(400)
+        try:
+            closed_day = date.fromisoformat(body.get("dateUtc", ""))
+            if closed_day >= datetime.utcnow().date():
+                raise ValueError
+            report = inspect_station_day(deye_client_from_environment(), station_id=station_id,
+                                         closed_day_utc=closed_day)
+        except ValueError:
+            raise HTTPException(400, detail="A past UTC date and a configured Deye reader are required")
+        except DeyeApiError:
+            raise HTTPException(502, detail="Deye telemetry audit could not be completed")
+        return {"data": report}
     @api.get("/dashboard/plants", include_in_schema=False)
     def dashboard_plants(request: Request):
         tenant, subject = dashboard_context(request)

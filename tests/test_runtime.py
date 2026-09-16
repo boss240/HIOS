@@ -884,3 +884,22 @@ def test_dashboard_can_save_rdn_scenario_and_apply_it_to_a_forecast(db, keys, mo
             json={"consumptionKwh": [5], "rdnScenarioId": scenario_id})
         assert plan.status_code == 200
         assert plan.json()["data"][0]["estimatedImportCostUah"] == 14.5
+
+def test_dashboard_audits_one_past_deye_day_without_persisting_raw_telemetry(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    class FakeDeye:
+        def obtain_token(self): return "token"
+        def station_frame_history_for_day(self, token, station_id, *, closed_day_utc):
+            assert (token, station_id, closed_day_utc.isoformat()) == ("token", 7, "2026-09-10")
+            return {"stationDataItems": [{"timeStamp": 1_726_000_000, "generationPower": 500,
+                                           "generationValue": 1.25}]}
+    monkeypatch.setattr(main_module, "deye_client_from_environment", lambda: FakeDeye())
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        assert dashboard.post("/dashboard/deye/stations/7/telemetry-audit", auth=("operator", "test-only-password"),
+                              json={"dateUtc": "2026-09-10"}).status_code == 400
+        response = dashboard.post("/dashboard/deye/stations/7/telemetry-audit", auth=("operator", "test-only-password"),
+                                  json={"confirmReadOnly": True, "dateUtc": "2026-09-10"})
+        assert response.status_code == 200
+        assert response.json()["data"]["persistence"] == "not_written"
+        assert response.json()["data"]["sample_count"] == 1

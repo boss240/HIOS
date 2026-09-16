@@ -20,7 +20,7 @@ from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 from app.deye_station_reference import station_id_from_reference
 from app.deye_discovery import client_from_environment as deye_client_from_environment, discover_stations
 from app.deye_openapi import DeyeApiError
-from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
+from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, delete_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.inverter_connection_request import list_connection_requests, request_connection
 
@@ -285,6 +285,17 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except (TypeError, ValueError):
             raise HTTPException(400)
         return {"data": {"id": plant_id}}
+
+    @api.delete("/dashboard/plants/{plant_id}", status_code=204, include_in_schema=False)
+    def dashboard_delete_plant(request: Request, plant_id: str, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        try:
+            delete_plant(database_url=database_url, subject=subject, tenant_id=tenant, plant_id=plant_id,
+                         confirmation_name=body.get("confirmationName"))
+        except ValueError:
+            raise HTTPException(400)
+        except PermissionError:
+            raise HTTPException(404)
     @api.get("/dashboard/plants/{plant_id}/cloud-requests", include_in_schema=False)
     def dashboard_cloud_requests(request: Request, plant_id: str):
         tenant, subject = dashboard_context(request)

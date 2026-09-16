@@ -85,6 +85,34 @@ def create_plant(*, database_url: str, subject: str, tenant_id: str, name: str,
     return plant_id
 
 
+def delete_plant(*, database_url: str, subject: str, tenant_id: str, plant_id: str,
+                 confirmation_name: str) -> None:
+    """Permanently remove one owner-confirmed plant and its plant-scoped records."""
+    if not isinstance(confirmation_name, str) or not confirmation_name.strip():
+        raise ValueError("confirmation_name is required")
+    with psycopg.connect(database_url, connect_timeout=5) as connection:
+        row = connection.execute(
+            """SELECT p.name FROM plant p JOIN membership m ON m.tenant_id=p.tenant_id
+               WHERE p.tenant_id=%s AND p.public_id=%s AND m.subject=%s AND m.active""",
+            (tenant_id, plant_id, subject),
+        ).fetchone()
+        if row is None:
+            raise PermissionError("Active membership and tenant-owned plant are required")
+        if confirmation_name.strip() != row[0]:
+            raise ValueError("confirmation name does not match")
+        connection.execute("""DELETE FROM forecast_point WHERE run_id IN
+                           (SELECT run_id FROM forecast_run WHERE tenant_id=%s AND plant_id=%s)""",
+                           (tenant_id, plant_id))
+        connection.execute("DELETE FROM forecast_job_outcome WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM forecast_run WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM weather_snapshot WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM actual_generation_snapshot WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM model_registry WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM forecast_job_lease WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM provider_ensemble_profile WHERE tenant_id=%s AND plant_id=%s", (tenant_id, plant_id))
+        connection.execute("DELETE FROM plant WHERE tenant_id=%s AND public_id=%s", (tenant_id, plant_id))
+
+
 def add_read_only_binding(*, database_url: str, subject: str, binding: InverterCloudBinding,
                           discovery_status: str = "pending") -> UUID:
     """Register an approved secret reference and discovered native plant ID without a secret value."""

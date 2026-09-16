@@ -23,6 +23,7 @@ from app.deye_openapi import DeyeApiError
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
+from app.rdn_price_store import create_scenario, list_scenarios, scenario_prices_for_intervals
 from app.inverter_connection_request import list_connection_requests, request_connection
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -328,6 +329,20 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except ValueError:
             raise HTTPException(400)
         return {"data": {"id": channel.provider, "role": channel.role, "status": channel.status}}
+    @api.get("/dashboard/rdn-scenarios", include_in_schema=False)
+    def dashboard_rdn_scenarios(request: Request):
+        tenant, subject = dashboard_context(request)
+        return {"data": list_scenarios(database_url, tenant, subject)}
+
+    @api.post("/dashboard/rdn-scenarios", status_code=201, include_in_schema=False)
+    def dashboard_create_rdn_scenario(request: Request, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        try:
+            scenario_id = create_scenario(database_url, tenant, subject, body.get("name"), body.get("points"), body.get("sourceReference"))
+        except (TypeError, ValueError):
+            raise HTTPException(400)
+        return {"data": {"id": str(scenario_id)}}
+
     @api.get("/dashboard/plants/{plant_id}/forecast-runs", include_in_schema=False)
     def dashboard_plant_forecast_runs(request: Request, plant_id: str):
         tenant, subject = dashboard_context(request)
@@ -436,9 +451,14 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     def requested_plan_for_context(tenant: str, subject: str, run_id: str, body: dict):
         try:
             run_uuid = UUID(run_id)
-            return hourly_plan(authorized_forecast_points(tenant, subject, run_uuid),
-                consumption_kwh=body.get("consumptionKwh"),
-                rdn_price_uah_per_kwh=body.get("rdnPriceUahPerKwh"))
+            points = authorized_forecast_points(tenant, subject, run_uuid)
+            explicit_prices = body.get("rdnPriceUahPerKwh")
+            scenario_id = body.get("rdnScenarioId")
+            if explicit_prices is not None and scenario_id is not None:
+                raise ValueError("supply either rdnPriceUahPerKwh or rdnScenarioId")
+            prices = scenario_prices_for_intervals(database_url, tenant, subject, scenario_id,
+                tuple(item.interval_start_utc for item in points)) if scenario_id is not None else explicit_prices
+            return hourly_plan(points, consumption_kwh=body.get("consumptionKwh"), rdn_price_uah_per_kwh=prices)
         except ValueError as error:
             raise HTTPException(400, detail=str(error))
 

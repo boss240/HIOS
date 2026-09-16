@@ -749,6 +749,19 @@ def test_dashboard_can_create_its_isolated_plant_registry(db, keys, monkeypatch)
         assert dashboard.get("/dashboard/plants").status_code == 401
 
 
+def test_dashboard_requires_exact_name_before_permanently_deleting_a_plant(db, keys, monkeypatch):
+    monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
+    monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
+    with TestClient(create_app(db, keys[1], "hios-test", "hios-api")) as dashboard:
+        created = dashboard.post("/dashboard/plants", auth=("operator", "test-only-password"), json={"name": "Тестова СЕС"})
+        plant_id = created.json()["data"]["id"]
+        wrong = dashboard.request("DELETE", f"/dashboard/plants/{plant_id}", auth=("operator", "test-only-password"), json={"confirmationName": "інша"})
+        assert wrong.status_code == 400
+        removed = dashboard.request("DELETE", f"/dashboard/plants/{plant_id}", auth=("operator", "test-only-password"), json={"confirmationName": "Тестова СЕС"})
+        assert removed.status_code == 204
+        assert dashboard.get("/dashboard/plants", auth=("operator", "test-only-password")).json()["data"] == []
+
+
 def test_dashboard_can_select_weather_research_channel(db, keys, monkeypatch):
     monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
     monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")

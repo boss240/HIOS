@@ -49,7 +49,8 @@ def create_scenario(database_url: str, tenant_id: str, subject: str, name: str,
             raise PermissionError("active membership required")
         connection.execute("INSERT INTO rdn_price_scenario(scenario_id,tenant_id,name,source_reference) VALUES (%s,%s,%s,%s)",
                            (scenario_id, tenant_id, name.strip(), source_reference.strip() if source_reference else None))
-        connection.executemany("INSERT INTO rdn_price_point(scenario_id,interval_start_utc,price_uah_per_kwh) VALUES (%s,%s,%s)",
+        with connection.cursor() as cursor:
+            cursor.executemany("INSERT INTO rdn_price_point(scenario_id,interval_start_utc,price_uah_per_kwh) VALUES (%s,%s,%s)",
                                [(scenario_id, item.interval_start_utc, item.price_uah_per_kwh) for item in parsed])
     return scenario_id
 

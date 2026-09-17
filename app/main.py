@@ -100,9 +100,12 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     @api.exception_handler(StarletteHTTPException)
     async def http_error(request, exc):
         codes = {400: "VALIDATION_ERROR", 401: "AUTH_REQUIRED",
-                 403: "ACCESS_DENIED", 404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}
+                 403: "ACCESS_DENIED", 404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED",
+                 502: "DEYE_UPSTREAM_UNAVAILABLE", 503: "DEYE_READER_NOT_CONFIGURED"}
         messages = {400: "Invalid pagination parameters", 401: "Authentication required",
-                    403: "Access denied", 404: "Resource not found", 405: "Method not allowed"}
+                    403: "Access denied", 404: "Resource not found", 405: "Method not allowed",
+                    502: "Deye Cloud could not complete the read-only request",
+                    503: "Deye read-only integration is not configured"}
         return error(request, exc.status_code, codes.get(exc.status_code, "INTERNAL_ERROR"),
                      messages.get(exc.status_code, "Internal error"))
 

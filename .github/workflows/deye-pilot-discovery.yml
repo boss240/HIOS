@@ -1,0 +1,38 @@
+name: Deye pilot read-only discovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_read_only:
+        description: "Type READ_ONLY to confirm the two-plant read-only discovery"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  discover-approved-pilots:
+    name: Discover approved Deye pilot stations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEYE_APP_ID: ${{ secrets.DEYE_APP_ID }}
+      DEYE_APP_SECRET: ${{ secrets.DEYE_APP_SECRET }}
+      DEYE_ACCOUNT_EMAIL: ${{ secrets.DEYE_ACCOUNT_EMAIL }}
+      DEYE_ACCOUNT_PASSWORD: ${{ secrets.DEYE_ACCOUNT_PASSWORD }}
+      DEYE_COMPANY_ID: "0"
+    steps:
+      - name: Confirm bounded read-only scope
+        shell: bash
+        run: |
+          test "${{ inputs.confirm_read_only }}" = "READ_ONLY"
+          echo "Scope: Deye station-list only; two approved pilot names; no write, control, or telemetry persistence."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install read-only client dependencies
+        run: python -m pip install --disable-pip-version-check httpx
+      - name: Discover Pohreby and Borshchiv native station IDs
+        run: python scripts/deye_pilot_discovery.py --execute

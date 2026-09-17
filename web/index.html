@@ -53,6 +53,13 @@
         <p>Вставте номер станції або повне посилання зі сторінки Deye Cloud. Дані доступу тут не вводяться.</p>
         <button type="button" class="text-button" id="discoverDeyeStations">Знайти мої СЕС у Deye</button>
         <div id="deyeStationChoices" aria-live="polite"></div>
+        <section class="deye-audit" id="deyeTelemetryAudit" hidden aria-labelledby="deyeAuditTitle">
+          <strong id="deyeAuditTitle">Контроль якості даних Deye</strong>
+          <p id="deyeAuditStation">Спершу виберіть СЕС зі списку.</p>
+          <label>Завершена дата, UTC<input id="deyeAuditDate" type="date" required></label>
+          <button type="button" class="outline-button" id="auditDeyeTelemetry">Перевірити історичні дані</button>
+          <p id="deyeAuditStatus" role="status"></p>
+        </section>
       </form>      <div class="asset-list" id="assetList"><p class="empty-state">Завантаження реєстру…</p></div>
       <form class="asset-form" id="assetForm" hidden>
         <label>Назва СЕС<input name="name" required maxlength="120" placeholder="Наприклад, СЕС Озерна"></label>

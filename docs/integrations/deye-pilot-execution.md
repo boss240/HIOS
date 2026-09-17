@@ -30,9 +30,10 @@ are used for the controlled operator environment, use these exact names:
 | `DEYE_COMPANY_ID` | Optional Deye business-account context; omit when not applicable. |
 
 Never place a value in a workflow file, command history, issue, pull request,
-test fixture, log, output artifact or source-control commit. GitHub Actions is
-not an approved execution path for this initial request because it would make
-the account password available to a CI runner.
+test fixture, log, output artifact or source-control commit. GitHub Actions may
+be used only by the explicitly manual, bounded read-only workflows in this
+repository. They must not upload raw frames or artifacts, persist provider rows,
+or enable scheduling.
 
 ## Controlled discovery
 
@@ -94,3 +95,22 @@ the field-mapping review. The next approved request, if authorized, is a
 bounded device discovery followed by one closed UTC day of history for each
 plant. No telemetry may enter training, evaluation or production services
 until the per-plant quality, reconciliation and tenant-isolation gates pass.
+
+## Controlled hourly collection
+
+After the two pilots are discovered, an operator may run the manual workflow
+`Deye pilot hourly read-only collection` for **one completed UTC date**. It
+uses the fixed station-list and station-history read paths to select only
+`Погреби` and `Борщів`, then returns per-hour frame coverage and quality
+statistics for each pilot.
+
+The workflow requires both the ISO date and the exact acknowledgement
+`READ_ONLY_HOURLY`. It has read-only repository permissions, no schedule and a
+five-minute execution limit. It does not upload an artifact, log a raw Deye
+frame, save a token, modify an inverter or create a database row.
+
+The result is collection evidence, not yet a calibrated actual-generation
+series. Before hourly values can be normalized and retained for forecast
+training or evaluation, the Deye field names, timezone, units, interval
+meaning, consent record and per-plant mapping version must be approved. Until
+then, the report explicitly states `not_written_pending_field_mapping`.

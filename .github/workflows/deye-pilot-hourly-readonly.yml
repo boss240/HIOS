@@ -1,0 +1,43 @@
+name: Deye pilot hourly read-only collection
+
+on:
+  workflow_dispatch:
+    inputs:
+      closed_day_utc:
+        description: "One completed UTC date: YYYY-MM-DD"
+        required: true
+        type: string
+      confirm_read_only:
+        description: "Type READ_ONLY_HOURLY to confirm two-station frame-history retrieval"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  collect-approved-pilots:
+    name: Collect hourly coverage for approved Deye pilots
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEYE_APP_ID: ${{ secrets.DEYE_APP_ID }}
+      DEYE_APP_SECRET: ${{ secrets.DEYE_APP_SECRET }}
+      DEYE_ACCOUNT_EMAIL: ${{ secrets.DEYE_ACCOUNT_EMAIL }}
+      DEYE_ACCOUNT_PASSWORD: ${{ secrets.DEYE_ACCOUNT_PASSWORD }}
+      DEYE_COMPANY_ID: "0"
+    steps:
+      - name: Confirm bounded read-only scope
+        shell: bash
+        run: |
+          test "${{ inputs.confirm_read_only }}" = "READ_ONLY_HOURLY"
+          [[ "${{ inputs.closed_day_utc }}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+          echo "Scope: one closed UTC day; two approved pilot stations; read-only frame history; aggregate coverage only."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install read-only client dependencies
+        run: python -m pip install --disable-pip-version-check httpx
+      - name: Collect hourly coverage for both pilots
+        run: python scripts/deye_pilot_hourly_collection.py --execute --date "${{ inputs.closed_day_utc }}"

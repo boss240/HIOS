@@ -59,3 +59,19 @@ def test_discovery_rejects_missing_pilot_and_environment():
         module.discover_pilots(Missing())
     with pytest.raises(ValueError, match="DEYE_APP_SECRET"):
         module.credentials_from_environment({"DEYE_APP_ID": "id"})
+
+def test_discovery_can_reuse_a_supplied_short_lived_token():
+    class TokenAwareDeye(FakeDeye):
+        def __init__(self):
+            self.calls = []
+
+        def list_stations(self, token):
+            self.calls.append(("list", token))
+            return {"data": [{"stationName": "Погреби", "stationId": 1}, {"stationName": "Борщів", "stationId": 2}]}
+
+    client = TokenAwareDeye()
+    assert module.discover_pilots(client, token="shared") == (
+        {"pilot_key": "deye-pilot-borshchiv", "station_id": 2},
+        {"pilot_key": "deye-pilot-pohreby", "station_id": 1},
+    )
+    assert client.calls == [("list", "shared")]

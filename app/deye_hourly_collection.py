@@ -34,7 +34,7 @@ def hourly_coverage(body: Mapping[str, Any]) -> tuple[dict[str, int], ...]:
 
 
 def collect_closed_pilot_day(client: DeyeReadOnlyClient, *, station_id: int,
-                              closed_day_utc: date) -> dict[str, Any]:
+                              closed_day_utc: date, token: str | None = None) -> dict[str, Any]:
     """Read one closed UTC day and return aggregate coverage, never raw frames."""
     if isinstance(station_id, bool) or not isinstance(station_id, int) or station_id <= 0:
         raise ValueError("station_id must be a positive integer")
@@ -42,8 +42,8 @@ def collect_closed_pilot_day(client: DeyeReadOnlyClient, *, station_id: int,
         raise ValueError("closed_day_utc must be a date")
     if closed_day_utc >= datetime.now(timezone.utc).date():
         raise ValueError("closed_day_utc must be before today")
-    token = client.obtain_token()
-    response = client.station_frame_history_for_day(token, station_id, closed_day_utc=closed_day_utc)
+    request_token = token or client.obtain_token()
+    response = client.station_frame_history_for_day(request_token, station_id, closed_day_utc=closed_day_utc)
     quality = asdict(audit_station_frame_history(response))
     return {
         "dateUtc": closed_day_utc.isoformat(),

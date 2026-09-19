@@ -44,9 +44,13 @@ def credentials_from_environment(environment: dict[str, str] | None = None) -> D
         company_id,
     )
 
-def discover_pilots(api: DeyeReadOnlyClient) -> tuple[dict[str, str | int], ...]:
-    """Return only approved pilot keys and their native station IDs."""
-    body: dict[str, Any] = api.list_stations(api.obtain_token())
+def discover_pilots(api: DeyeReadOnlyClient, *, token: str | None = None) -> tuple[dict[str, str | int], ...]:
+    """Return only approved pilot keys and their native station IDs.
+
+    Callers that combine discovery with other bounded reads may inject one
+    short-lived token to avoid repeated Deye authentication in the same run.
+    """
+    body: dict[str, Any] = api.list_stations(token or api.obtain_token())
     data: Any = body.get("data", body)
     rows = (
         data

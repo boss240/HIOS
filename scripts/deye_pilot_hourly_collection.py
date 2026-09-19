@@ -27,11 +27,12 @@ def main() -> None:
 
     client = DeyeReadOnlyClient(credentials_from_environment())
     try:
-        pilots = discover_pilots(client)
+        token = client.obtain_token()
+        pilots = discover_pilots(client, token=token)
         results = []
         for pilot in pilots:
             report = collect_closed_pilot_day(
-                client, station_id=int(pilot["station_id"]), closed_day_utc=args.date,
+                client, station_id=int(pilot["station_id"]), closed_day_utc=args.date, token=token,
             )
             results.append({"pilotKey": pilot["pilot_key"], "report": report})
     except (DeyeApiError, ValueError) as error:

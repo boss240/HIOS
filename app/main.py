@@ -21,6 +21,7 @@ from app.deye_station_reference import station_id_from_reference
 from app.deye_discovery import client_from_environment as deye_client_from_environment, discover_stations
 from app.deye_openapi import DeyeApiError
 from app.deye_telemetry import inspect_station_day
+from app.manual_actuals_import import preview_manual_actuals_csv
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
@@ -48,6 +49,7 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     api = FastAPI(title="HIOS API", docs_url=None, redoc_url=None)
     api.openapi = lambda: yaml.safe_load((ROOT / "docs/api/openapi.yaml").read_text())
     api.mount("/assets", StaticFiles(directory=str(ROOT / "web")), name="assets")
+    api.mount("/downloads", StaticFiles(directory=str(ROOT / "docs" / "templates")), name="downloads")
     dashboard_user = os.environ.get("HIOS_DASHBOARD_USER", "")
     dashboard_password = os.environ.get("HIOS_DASHBOARD_PASSWORD", "")
     if bool(dashboard_user) != bool(dashboard_password):
@@ -290,6 +292,14 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except DeyeApiError:
             raise HTTPException(502, detail="Deye telemetry audit could not be completed")
         return {"data": report}
+    @api.post("/dashboard/actuals/manual-import/preview", include_in_schema=False)
+    def dashboard_preview_manual_actuals(request: Request, body: dict = Body(...)):
+        dashboard_context(request)
+        try:
+            return {"data": preview_manual_actuals_csv(body.get("csvText"))}
+        except ValueError:
+            raise HTTPException(400)
+
     @api.get("/dashboard/plants", include_in_schema=False)
     def dashboard_plants(request: Request):
         tenant, subject = dashboard_context(request)

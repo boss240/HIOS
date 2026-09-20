@@ -154,3 +154,16 @@
   <script src="/assets/hourly-planning-dashboard.js" defer></script>
 </body>
 </html>
+
+    <section class="integration-status" id="integrationStatus" aria-label="Стан інтеграцій">
+      <div class="card-head"><div><p class="eyebrow">DATA INTEGRATION</p><h2>Стан даних для точного прогнозу</h2></div></div>
+      <div class="integration-grid">
+        <article class="integration-card waiting"><span>DEYE CLOUD</span><strong>Очікується відповідь Deye</strong><p>Станції «Погреби» й «Борщів» підтверджені. API token інколи відхиляється кодом 2101025.</p></article>
+        <article class="integration-card ready"><span>RESERVE IMPORT</span><strong>Готово до завантаження</strong><p>Використайте погодинний експорт Deye як CSV або Excel. Дані потраплять до аналізу після перевірки одиниць.</p><p><a href="/downloads/hios-deye-hourly-actuals-template.csv" download>Шаблон CSV</a> · <a href="/downloads/HIOS_Deye_Hourly_Actuals_Template.xlsx" download>Шаблон Excel</a></p></article>
+        <article class="integration-card pending"><span>FORECAST QUALITY</span><strong>Очікує actuals</strong><p>Після нормалізації HIOS порівняє факт із Google Weather та Solcast по кожній годині й кожній СЕС.</p></article>
+      </div>
+    </section>
+    <section class="manual-import" id="manualActuals">
+      <div><p class="eyebrow">RESERVE ACTUALS IMPORT</p><h2>Перевірити погодинний експорт Deye</h2><p>Оберіть CSV за шаблоном. HIOS перевірить структуру, UTC-інтервали та одиниці, але не збереже рядки до затвердження карти полів.</p></div>
+      <div><input id="manualActualsFile" type="file" accept=".csv,text/csv"><button type="button" id="previewManualActuals">Перевірити файл</button><p id="manualActualsStatus" role="status"></p></div>
+    </section>

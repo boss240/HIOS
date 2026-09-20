@@ -70,3 +70,10 @@ displayAssets=renderAssetCards;
 $('#cloudForm').addEventListener('submit',async event=>{event.preventDefault();const status=$('#cloudFormStatus');status.textContent='Створення запиту…';try{const id=$('#cloudPlantId').value;const response=await fetch(`/dashboard/plants/${encodeURIComponent(id)}/cloud-requests`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:$('#cloudProvider').value})});if(!response.ok)throw new Error();status.textContent='Запит створено. Система очікує захищеного підтвердження доступу.';}catch{status.textContent='Не вдалося створити запит.';}});
 
 $('#quickIdForm').addEventListener('submit',async event=>{event.preventDefault();const status=$('#quickIdStatus');status.textContent='Додавання…';try{const response=await fetch('/dashboard/plants/register-by-provider-id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:$('#quickProvider').value,externalPlantId:$('#quickExternalId').value.trim()})});if(!response.ok)throw new Error();$('#quickExternalId').value='';status.textContent='СЕС додано. Дані буде зчитано після підтвердження доступу.';await loadAssets();}catch{status.textContent='Перевірте ID станції.';}});
+
+$('#previewManualActuals').addEventListener('click', async () => {
+  const file=$('#manualActualsFile').files[0], status=$('#manualActualsStatus');
+  if(!file){status.textContent='Оберіть CSV-файл за шаблоном.';return;}
+  status.textContent='Перевірка…';
+  try{const response=await fetch('/dashboard/actuals/manual-import/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({csvText:await file.text()})});if(!response.ok)throw new Error();const data=(await response.json()).data;status.textContent=`Перевірено рядків: ${data.rows}. Погреби: ${data.byPilot['deye-pilot-pohreby']}; Борщів: ${data.byPilot['deye-pilot-borshchiv']}. Дані ще не збережено.`;}catch{status.textContent='Файл не відповідає шаблону або містить некоректні значення.';}
+});

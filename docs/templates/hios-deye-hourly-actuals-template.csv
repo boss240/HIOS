@@ -1,0 +1,3 @@
+plant_key,interval_start_utc,interval_end_utc,ac_power_kw,energy_kwh,energy_semantics,device_status,source_reference
+# deye-pilot-pohreby,2026-09-18T08:00:00Z,2026-09-18T09:00:00Z,12.5,11.8,interval,online,deye-export-2026-09-18
+# deye-pilot-borshchiv,2026-09-18T08:00:00Z,2026-09-18T09:00:00Z,10.9,10.1,interval,online,deye-export-2026-09-18

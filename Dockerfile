@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements-runtime.txt
 COPY app ./app
 COPY migrations ./migrations
 COPY docs/api ./docs/api
+COPY docs/templates ./docs/templates
 COPY web ./web
 RUN chown -R hios:hios /app
 USER hios

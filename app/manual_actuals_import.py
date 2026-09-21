@@ -1,15 +1,18 @@
 """Validate a manual Deye hourly CSV before any field mapping or persistence."""
 from __future__ import annotations
 
+import base64
 import csv
 from datetime import datetime, timezone
-from io import StringIO
+from io import BytesIO, StringIO
 import math
 import hashlib
 from uuid import uuid4
+from zipfile import BadZipFile
 
 import psycopg
 from psycopg.types.json import Jsonb
+from openpyxl import load_workbook
 
 _REQUIRED = ("plant_key", "interval_start_utc", "interval_end_utc", "ac_power_kw", "energy_kwh", "energy_semantics", "device_status", "source_reference")
 _PILOTS = {"deye-pilot-pohreby", "deye-pilot-borshchiv"}
@@ -79,6 +82,36 @@ def preview_manual_actuals_csv(content: str) -> dict[str, object]:
     return {"rows": sum(counts.values()), "byPilot": counts, "persistence": "not_written_pending_field_mapping"}
 
 
+def _xlsx_as_csv(content_base64: str) -> str:
+    """Read a HIOS-template workbook without accepting arbitrary source mappings."""
+    if not isinstance(content_base64, str) or not content_base64:
+        raise ValueError("XLSX must be provided as base64")
+    try:
+        content = base64.b64decode(content_base64, validate=True)
+    except (ValueError, TypeError) as error:
+        raise ValueError("XLSX encoding is invalid") from error
+    if len(content) > 2_000_000:
+        raise ValueError("XLSX must be at most 2 MB")
+    try:
+        workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
+        sheet = workbook["Hourly actuals"] if "Hourly actuals" in workbook.sheetnames else workbook.active
+        output = StringIO(newline="")
+        writer = csv.writer(output)
+        for row in sheet.iter_rows(values_only=True):
+            writer.writerow([
+                value.isoformat().replace("+00:00", "Z") if isinstance(value, datetime) else "" if value is None else value
+                for value in row
+            ])
+        workbook.close()
+        return output.getvalue()
+    except (BadZipFile, OSError, ValueError, KeyError) as error:
+        raise ValueError("XLSX cannot be read") from error
+
+
+def preview_manual_actuals_xlsx(content_base64: str) -> dict[str, object]:
+    return preview_manual_actuals_csv(_xlsx_as_csv(content_base64))
+
+
 def persist_manual_actuals_csv(*, database_url: str, tenant_id: str, subject: str, content: str) -> dict[str, object]:
     rows = _validated_rows(content)
     labels = {"deye-pilot-pohreby": "Погреби", "deye-pilot-borshchiv": "Борщів"}
@@ -94,3 +127,12 @@ def persist_manual_actuals_csv(*, database_url: str, tenant_id: str, subject: st
             result = connection.execute("""INSERT INTO actual_generation_snapshot(snapshot_id,tenant_id,plant_id,provider,mapping_version,observed_at_utc,interval_end_utc,retrieved_at_utc,source_reference,payload_sha256,ac_power_kw,energy_kwh,energy_semantics,device_status,quality_flags) VALUES (%s,%s,%s,'deye_cloud','deye-manual-csv-v1',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (tenant_id,plant_id,provider,mapping_version,observed_at_utc,interval_end_utc,payload_sha256) DO NOTHING RETURNING snapshot_id""", (uuid4(),tenant_id,row["pilot"],row["start"],row["end"],retrieved,row["reference"],digest,row["power"],row["energy"],row["semantics"],row["status"],Jsonb(["manual_export"]))).fetchone()
             inserted += bool(result); skipped += not bool(result)
     return {"rows": len(rows), "inserted": inserted, "duplicates": skipped, "persistence": "written"}
+
+
+def persist_manual_actuals_xlsx(*, database_url: str, tenant_id: str, subject: str, content_base64: str) -> dict[str, object]:
+    return persist_manual_actuals_csv(
+        database_url=database_url,
+        tenant_id=tenant_id,
+        subject=subject,
+        content=_xlsx_as_csv(content_base64),
+    )

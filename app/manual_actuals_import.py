@@ -5,6 +5,11 @@ import csv
 from datetime import datetime, timezone
 from io import StringIO
 import math
+import hashlib
+from uuid import uuid4
+
+import psycopg
+from psycopg.types.json import Jsonb
 
 _REQUIRED = ("plant_key", "interval_start_utc", "interval_end_utc", "ac_power_kw", "energy_kwh", "energy_semantics", "device_status", "source_reference")
 _PILOTS = {"deye-pilot-pohreby", "deye-pilot-borshchiv"}
@@ -31,14 +36,14 @@ def _number(value: str, label: str) -> None:
         raise ValueError(f"{label} must be finite and non-negative")
 
 
-def preview_manual_actuals_csv(content: str) -> dict[str, object]:
+def _validated_rows(content: str) -> list[dict[str, object]]:
     if not isinstance(content, str) or len(content.encode("utf-8")) > 2_000_000:
         raise ValueError("CSV must be non-empty and at most 2 MB")
     rows = [line for line in content.splitlines() if line.strip() and not line.lstrip().startswith("#")]
     reader = csv.DictReader(StringIO("\n".join(rows)))
     if tuple(reader.fieldnames or ()) != _REQUIRED:
         raise ValueError("CSV headers do not match the HIOS Deye template")
-    counts = {pilot: 0 for pilot in _PILOTS}
+    parsed_rows: list[dict[str, object]] = []
     for position, row in enumerate(reader, start=2):
         pilot = (row.get("plant_key") or "").strip()
         if pilot not in _PILOTS:
@@ -55,7 +60,37 @@ def preview_manual_actuals_csv(content: str) -> dict[str, object]:
             raise ValueError(f"row {position}: energy_semantics is invalid")
         if not (row["source_reference"] or "").strip():
             raise ValueError(f"row {position}: source_reference is required")
-        counts[pilot] += 1
+        parsed_rows.append({"pilot": pilot, "start": start, "end": end,
+                            "power": float(row["ac_power_kw"]) if row["ac_power_kw"].strip() else None,
+                            "energy": float(row["energy_kwh"]) if row["energy_kwh"].strip() else None,
+                            "semantics": row["energy_semantics"] or None,
+                            "status": (row["device_status"] or "").strip() or None,
+                            "reference": row["source_reference"].strip()})
+    return parsed_rows
+
+
+def preview_manual_actuals_csv(content: str) -> dict[str, object]:
+    parsed_rows = _validated_rows(content)
+    counts = {pilot: 0 for pilot in _PILOTS}
+    for row in parsed_rows:
+        counts[row["pilot"]] += 1
     if not sum(counts.values()):
         raise ValueError("CSV has no data rows")
     return {"rows": sum(counts.values()), "byPilot": counts, "persistence": "not_written_pending_field_mapping"}
+
+
+def persist_manual_actuals_csv(*, database_url: str, tenant_id: str, subject: str, content: str) -> dict[str, object]:
+    rows = _validated_rows(content)
+    labels = {"deye-pilot-pohreby": "Погреби", "deye-pilot-borshchiv": "Борщів"}
+    inserted = skipped = 0
+    with psycopg.connect(database_url, connect_timeout=5) as connection:
+        if connection.execute("SELECT 1 FROM membership WHERE tenant_id=%s AND subject=%s AND active", (tenant_id, subject)).fetchone() is None:
+            raise PermissionError("active membership is required")
+        for plant_id, name in labels.items():
+            connection.execute("INSERT INTO plant(public_id,tenant_id,name) VALUES (%s,%s,%s) ON CONFLICT (public_id) DO NOTHING", (plant_id, tenant_id, name))
+        retrieved = datetime.now(timezone.utc)
+        for row in rows:
+            digest = hashlib.sha256("|".join(str(row[k]) for k in ("pilot", "start", "end", "power", "energy", "semantics", "status", "reference")).encode()).hexdigest()
+            result = connection.execute("""INSERT INTO actual_generation_snapshot(snapshot_id,tenant_id,plant_id,provider,mapping_version,observed_at_utc,interval_end_utc,retrieved_at_utc,source_reference,payload_sha256,ac_power_kw,energy_kwh,energy_semantics,device_status,quality_flags) VALUES (%s,%s,%s,'deye_cloud','deye-manual-csv-v1',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (tenant_id,plant_id,provider,mapping_version,observed_at_utc,interval_end_utc,payload_sha256) DO NOTHING RETURNING snapshot_id""", (uuid4(),tenant_id,row["pilot"],row["start"],row["end"],retrieved,row["reference"],digest,row["power"],row["energy"],row["semantics"],row["status"],Jsonb(["manual_export"]))).fetchone()
+            inserted += bool(result); skipped += not bool(result)
+    return {"rows": len(rows), "inserted": inserted, "duplicates": skipped, "persistence": "written"}

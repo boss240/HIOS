@@ -21,7 +21,7 @@ from app.deye_station_reference import station_id_from_reference
 from app.deye_discovery import client_from_environment as deye_client_from_environment, discover_stations
 from app.deye_openapi import DeyeApiError
 from app.deye_telemetry import inspect_station_day
-from app.manual_actuals_import import preview_manual_actuals_csv
+from app.manual_actuals_import import preview_manual_actuals_csv, persist_manual_actuals_csv
 from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
@@ -297,6 +297,16 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         dashboard_context(request)
         try:
             return {"data": preview_manual_actuals_csv(body.get("csvText"))}
+        except ValueError:
+            raise HTTPException(400)
+
+    @api.post("/dashboard/actuals/manual-import/commit", include_in_schema=False)
+    def dashboard_commit_manual_actuals(request: Request, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        if body.get("confirmPersist") is not True:
+            raise HTTPException(400)
+        try:
+            return {"data": persist_manual_actuals_csv(database_url=database_url, tenant_id=tenant, subject=subject, content=body.get("csvText"))}
         except ValueError:
             raise HTTPException(400)
 

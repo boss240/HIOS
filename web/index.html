@@ -150,6 +150,7 @@
     <footer>HIOS Forecast · Prototype interface · Дані на екрані — контрольований preview, не диспетчерська команда.</footer>
   </main>
   <script src="/assets/app.js" defer></script>
+  <script src="/assets/manual-actuals-persist.js" defer></script>
   <script src="/assets/deye-discovery.js" defer></script>
   <script src="/assets/hourly-planning-dashboard.js" defer></script>
 </body>
@@ -165,5 +166,5 @@
     </section>
     <section class="manual-import" id="manualActuals">
       <div><p class="eyebrow">RESERVE ACTUALS IMPORT</p><h2>Перевірити погодинний експорт Deye</h2><p>Оберіть CSV за шаблоном. HIOS перевірить структуру, UTC-інтервали та одиниці, але не збереже рядки до затвердження карти полів.</p></div>
-      <div><input id="manualActualsFile" type="file" accept=".csv,text/csv"><button type="button" id="previewManualActuals">Перевірити файл</button><p id="manualActualsStatus" role="status"></p></div>
+      <div><input id="manualActualsFile" type="file" accept=".csv,text/csv"><button type="button" id="previewManualActuals">Перевірити файл</button><button type="button" id="commitManualActuals">Зберегти перевірені дані</button><p id="manualActualsStatus" role="status"></p></div>
     </section>

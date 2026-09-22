@@ -51,14 +51,14 @@ def list_readiness(*, database_url: str, tenant_id: str, subject: str) -> tuple[
             raise PermissionError("Active membership is required")
         channels = tuple(WeatherChannelReadiness(*row) for row in connection.execute(
             """SELECT provider, role, status FROM weather_provider_channel
-               WHERE tenant_id=%s ORDER BY provider COLLATE "C""",
+               WHERE tenant_id=%s ORDER BY provider COLLATE "C"""",
             (tenant_id,),
         ).fetchall())
         scores_by_plant: dict[str, list[ProviderScoreReadiness]] = {}
         for row in connection.execute(
             """SELECT plant_id, provider, pair_count, mae_kw, bias_kw, correlation, weight, calibrated_at_utc
                FROM provider_ensemble_profile WHERE tenant_id=%s
-               ORDER BY plant_id COLLATE "C", provider COLLATE "C""",
+               ORDER BY plant_id COLLATE "C", provider COLLATE "C"""",
             (tenant_id,),
         ).fetchall():
             scores_by_plant.setdefault(row[0], []).append(ProviderScoreReadiness(*row[1:]))

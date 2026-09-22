@@ -28,6 +28,7 @@ from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, l
 from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
 from app.rdn_price_store import create_scenario, list_scenarios, scenario_prices_for_intervals
 from app.inverter_connection_request import list_connection_requests, request_connection
+from app.forecast_readiness import list_readiness
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -345,6 +346,22 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             ).fetchall()
         return {"data": [{"id": row[0], "name": row[1], "capacityKw": row[2]} for row in rows]}
 
+    @api.get("/dashboard/forecast-readiness", include_in_schema=False)
+    def dashboard_forecast_readiness(request: Request):
+        """Show the per-plant path from connection request to calibrated forecast mix."""
+        tenant, subject = dashboard_context(request)
+        try:
+            records = list_readiness(database_url=database_url, tenant_id=tenant, subject=subject)
+        except PermissionError:
+            raise HTTPException(403)
+        return {"data": [
+            {"plantId": item.plant_id, "plantName": item.plant_name,
+             "cloudStatus": item.cloud_status, "actualIntervalCount": item.actual_interval_count,
+             "firstActualAtUtc": item.first_actual_at_utc, "lastActualAtUtc": item.last_actual_at_utc,
+             "configuredProviderCount": item.provider_count,
+             "calibratedProviderCount": item.calibrated_provider_count, "state": item.state}
+            for item in records
+        ]}
     @api.post("/dashboard/plants", status_code=201, include_in_schema=False)
     def dashboard_register_plant(request: Request, body: dict = Body(...)):
         tenant, subject = dashboard_context(request)

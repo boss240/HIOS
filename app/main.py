@@ -359,7 +359,18 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
              "cloudStatus": item.cloud_status, "actualIntervalCount": item.actual_interval_count,
              "firstActualAtUtc": item.first_actual_at_utc, "lastActualAtUtc": item.last_actual_at_utc,
              "configuredProviderCount": item.provider_count,
-             "calibratedProviderCount": item.calibrated_provider_count, "state": item.state}
+             "calibratedProviderCount": item.calibrated_provider_count, "state": item.state,
+             "weatherChannels": [
+                 {"id": channel.provider, "name": PROVIDER_CATALOG[channel.provider].name,
+                  "role": channel.role, "status": channel.status}
+                 for channel in item.weather_channels
+             ],
+             "providerScores": [
+                 {"id": score.provider, "pairCount": score.pair_count, "maeKw": score.mae_kw,
+                  "biasKw": score.bias_kw, "correlation": score.correlation, "weight": score.weight,
+                  "calibratedAtUtc": score.calibrated_at_utc}
+                 for score in item.provider_scores
+             ]}
             for item in records
         ]}
     @api.post("/dashboard/plants", status_code=201, include_in_schema=False)

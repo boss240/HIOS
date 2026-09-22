@@ -37,6 +37,9 @@ def test_readiness_is_per_plant_and_advances_only_when_evidence_exists(db):
     assert pending.state == "calibration_pending"
     assert pending.provider_count == 1
     assert pending.actual_interval_count == 1
+    assert [(channel.provider, channel.role, channel.status) for channel in pending.weather_channels] == [
+        ("google_weather", "primary", "configured")
+    ]
 
     profile = calibrate(plant_key="002", rated_ac_kw=10, observations=(
         ProviderObservation("002", "google_weather", 3, 2.5),
@@ -46,6 +49,8 @@ def test_readiness_is_per_plant_and_advances_only_when_evidence_exists(db):
     calibrated = {item.plant_id: item for item in list_readiness(database_url=db, tenant_id="a", subject="alice")}["002"]
     assert calibrated.state == "calibrated"
     assert calibrated.calibrated_provider_count == 1
+    assert calibrated.provider_scores[0].provider == "google_weather"
+    assert calibrated.provider_scores[0].weight == 1
 
 
 def test_readiness_is_tenant_isolated(db):

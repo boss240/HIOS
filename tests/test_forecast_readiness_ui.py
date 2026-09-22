@@ -10,4 +10,7 @@ def test_forecast_readiness_is_a_separate_utf8_dashboard_module():
     assert '/dashboard/forecast-readiness' in script
     assert 'innerHTML' not in script
     assert 'calibrated' in script
+    assert 'weatherChannels' in script
+    assert 'providerScores' in script
+    assert 'innerHTML' not in script
 

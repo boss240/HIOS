@@ -18,3 +18,5 @@
 .readiness-item p { margin: .55rem 0 0; font-size: .86rem; color: var(--muted); }
 .readiness-item.awaiting_cloud_authorization span { color: var(--gold); }
 .readiness-item.calibration_pending span { color: var(--violet); }
+
+.readiness-sources,.readiness-scores{list-style:none;padding:0;margin:.75rem 0 0;display:grid;gap:.32rem}.readiness-sources li,.readiness-scores li{font-size:.75rem;line-height:1.35;color:var(--muted)}.readiness-sources li:before{content:"◦ ";color:var(--mint)}.readiness-scores{border-top:1px solid var(--line);padding-top:.65rem}.readiness-scores li{color:#c6d7d3}.readiness-scores li:before{content:"✓ ";color:var(--gold)}

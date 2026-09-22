@@ -18,6 +18,26 @@ class ForecastReadiness:
     provider_count: int
     calibrated_provider_count: int
     state: str
+    weather_channels: tuple["WeatherChannelReadiness", ...]
+    provider_scores: tuple["ProviderScoreReadiness", ...]
+
+
+@dataclass(frozen=True)
+class WeatherChannelReadiness:
+    provider: str
+    role: str
+    status: str
+
+
+@dataclass(frozen=True)
+class ProviderScoreReadiness:
+    provider: str
+    pair_count: int
+    mae_kw: float
+    bias_kw: float
+    correlation: float | None
+    weight: float
+    calibrated_at_utc: datetime
 
 
 def list_readiness(*, database_url: str, tenant_id: str, subject: str) -> tuple[ForecastReadiness, ...]:
@@ -29,6 +49,19 @@ def list_readiness(*, database_url: str, tenant_id: str, subject: str) -> tuple[
         ).fetchone()[0]
         if not allowed:
             raise PermissionError("Active membership is required")
+        channels = tuple(WeatherChannelReadiness(*row) for row in connection.execute(
+            """SELECT provider, role, status FROM weather_provider_channel
+               WHERE tenant_id=%s ORDER BY provider""",
+            (tenant_id,),
+        ).fetchall())
+        scores_by_plant: dict[str, list[ProviderScoreReadiness]] = {}
+        for row in connection.execute(
+            """SELECT plant_id, provider, pair_count, mae_kw, bias_kw, correlation, weight, calibrated_at_utc
+               FROM provider_ensemble_profile WHERE tenant_id=%s
+               ORDER BY plant_id, provider""",
+            (tenant_id,),
+        ).fetchall():
+            scores_by_plant.setdefault(row[0], []).append(ProviderScoreReadiness(*row[1:]))
         rows = connection.execute(
             """SELECT p.public_id, p.name,
                       (SELECT min(r.status) FROM inverter_cloud_connection_request r
@@ -59,7 +92,8 @@ def list_readiness(*, database_url: str, tenant_id: str, subject: str) -> tuple[
         else:
             state = "awaiting_actuals"
         result.append(ForecastReadiness(
-            plant_id, name, cloud_status, actuals, first_actual, last_actual, providers, calibrated, state
+            plant_id, name, cloud_status, actuals, first_actual, last_actual, providers, calibrated, state,
+            channels, tuple(scores_by_plant.get(plant_id, ())),
         ))
     return tuple(result)
 

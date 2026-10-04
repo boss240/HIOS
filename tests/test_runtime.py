@@ -1172,6 +1172,33 @@ def test_dashboard_can_save_rdn_scenario_and_apply_it_to_a_forecast(db, keys, mo
         assert plan.status_code == 200
         assert plan.json()["data"][0]["estimatedImportCostUah"] == 14.5
 
+def test_bound_device_collection_denies_scope_and_device_mismatch_before_history(db):
+    from datetime import date
+    from app.deye_device_collection_service import collect_bound_device
+    binding=uuid4()
+    with psycopg.connect(db) as c:
+        c.execute('''INSERT INTO inverter_cloud_binding(binding_id,tenant_id,plant_id,provider,
+            external_plant_id,credential_reference,consent_record_reference,mapping_version,
+            discovery_status) VALUES (%s,'a','002','deye_cloud','7','server-secret','consent',
+            'deye-v1','verified')''',(binding,))
+    class Fake:
+        auth=0
+        def obtain_token(self):self.auth+=1;return 'token'
+        def station_devices(self,token,station_ids,*,size):
+            assert station_ids==(7,) and size==100
+            return {'deviceListItems':[{'deviceSn':'other-device'}]}
+        def device_solar_history_for_day(self,*args,**kwargs):pytest.fail('foreign device read')
+    api=Fake()
+    kwargs=dict(tenant_id='a',plant_id='002',binding_id=binding,device_serial='selected',
+        start_day=date(2020,1,1),end_day=date(2020,1,1),client=api)
+    with pytest.raises(PermissionError):collect_bound_device(db,'bob',**kwargs)
+    assert api.auth==0
+    rows=collect_bound_device(db,'alice',**kwargs)
+    assert rows[0]['status']=='failed' and rows[0]['errorClass']=='PermissionError'
+    with psycopg.connect(db) as c:
+        assert c.execute('SELECT count(*) FROM device_solar_capture').fetchone()[0]==0
+
+
 def test_dashboard_audits_one_past_deye_day_without_persisting_raw_telemetry(db, keys, monkeypatch):
     monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
     monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")

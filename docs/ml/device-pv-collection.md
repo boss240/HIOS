@@ -25,5 +25,11 @@ earlier successful captures remain stored.
 Stored device PV is separate from verified plant AC actuals. This collector
 does not establish forecast accuracy or full station measurement coverage.
 
-Deployment remains pending the server job adapter and verified binding checks.
+`app.deye_device_collection_service.collect_bound_device` provides the server
+adapter: it locks the active membership, plant and verified binding, serializes
+collection with a transaction advisory lock, and checks device membership in the
+bound station before reading missing days. A truncated device list is rejected.
+It stores through the canonical validated capture store. No device IDs are logged.
+
+Deployment remains pending the cloud job entrypoint and production scope setup.
 Do not schedule retries against unchanged rejected Deye credentials.

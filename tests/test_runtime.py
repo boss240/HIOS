@@ -42,6 +42,31 @@ from app.actuals_alignment import load_aligned_power_samples
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
 
+def test_device_solar_capture_is_owned_idempotent_and_immutable(db):
+    from datetime import date
+    from app.deye_solar_capture_store import store_device_solar_capture
+    body = {'deviceSn':'private', 'dataList':[
+        {'time':'1577836800','itemList':[{'key':'TotalSolarPower','unit':'W','value':'1000'}]},
+        {'time':'1577837100','itemList':[{'key':'TotalSolarPower','unit':'W','value':'1000'}]}]}
+    options = dict(tenant_id='a',plant_id='002',device_serial='private',
+                   day=date(2020,1,1),retrieved_at=datetime(2020,1,2,tzinfo=timezone.utc),body=body)
+    first = store_device_solar_capture(db,'alice',**options)
+    assert store_device_solar_capture(db,'alice',**options) == first
+    with pytest.raises(PermissionError):
+        store_device_solar_capture(db,'bob',**options)
+    with pytest.raises(PermissionError):
+        store_device_solar_capture(db,'alice',**{**options,'plant_id':'001'})
+    with psycopg.connect(db) as connection:
+        document = connection.execute('SELECT document FROM device_solar_capture').fetchone()[0]
+        assert 'private' not in str(document)
+        assert document['scope'] == 'device_only'
+        assert document['hours'][0]['coveredSeconds'] == 300
+        assert not document['hours'][0]['complete']
+        assert connection.execute('SELECT count(*) FROM actual_generation_snapshot').fetchone()[0] == 0
+        with pytest.raises(psycopg.Error):
+            connection.execute('UPDATE device_solar_capture SET document=document')
+
+
 def test_dc_capacity_patch_preserves_profile_and_checks_owner(db):
     with psycopg.connect(db) as connection:
         connection.execute("INSERT INTO plant_profile(plant_id,tilt_deg) VALUES ('002',30)")

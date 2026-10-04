@@ -84,6 +84,23 @@
         <p id="cloudFormStatus">Пароль не вводиться. Наступний етап — захищене підтвердження доступу та автоматичне discovery.</p>
       </form>
     </section>
+    <section class="asset-registry" id="plantPassport">
+      <div class="card-head"><h2>Паспорт СЕС</h2><button type="button" class="text-button" id="refreshPassportPlants">Оновити список</button></div>
+      <p class="card-copy">Оберіть існуючу СЕС і доповніть її дані. Змінюються лише відредаговані поля; новий об’єкт не створюється.</p>
+      <label>СЕС<select id="passportPlant"><option value="">Оберіть об’єкт</option></select></label>
+      <form class="asset-form" id="passportForm" hidden>
+        <label>Широта<input name="latitude" type="number" min="-90" max="90" step="any"></label>
+        <label>Довгота<input name="longitude" type="number" min="-180" max="180" step="any"></label>
+        <label>Часова зона<input name="timezone" placeholder="Europe/Kyiv"></label>
+        <label>Потужність AC, кВт<input name="capacityAcKw" type="number" min="0" step="any"></label>
+        <label>Нахил, °<input name="tiltDeg" type="number" min="0" max="90" step="any"></label>
+        <label>Азимут, °<input name="azimuthDeg" type="number" min="0" max="359.999999" step="any"></label>
+        <label>Межа обліку<input name="meterBoundary" maxlength="120"></label>
+        <label class="asset-notes">Нотатка<textarea name="operatorNotes" maxlength="2000"></textarea></label>
+        <div class="asset-actions"><button type="submit">Зберегти зміни</button></div>
+      </form>
+      <p id="passportStatus" role="status"></p>
+    </section>
     <section class="metrics" aria-live="polite">
       <article><span>Очікувана енергія</span><strong id="energyValue">53.1 <small>kWh</small></strong><p id="energyNote">Наступні 24 години</p></article>
       <article><span>Пікова потужність</span><strong id="peakValue">8.9 <small>kW</small></strong><p id="peakNote">Оцінка MODEL-001</p></article>
@@ -162,6 +179,7 @@
   <script src="/assets/deye-discovery.js" defer></script>
   <script src="/assets/hourly-planning-dashboard.js" defer></script>
   <script src="/assets/forecast-readiness.js" defer></script>
+  <script src="/assets/plant-passport.js" defer></script>
 </body>
 </html>
 

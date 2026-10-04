@@ -6,6 +6,7 @@ from datetime import date
 from uuid import UUID, uuid4
 
 import psycopg
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 
@@ -132,3 +133,41 @@ def get_onboarding(*, database_url: str, subject: str, tenant_id: str, plant_id:
     data = {key: value for key, value in zip(keys, row) if value is not None}
     data["cloudBindings"] = [dict(zip(("provider", "externalPlantId", "credentialReference", "consentRecordReference", "mappingVersion", "readOnly", "discoveryStatus"), value)) for value in bindings]
     return data
+
+
+def update_plant_profile(*, database_url: str, subject: str, tenant_id: str,
+                         plant_id: str, changes: dict) -> None:
+    """Patch only supplied passport fields; ownership is checked under a lock."""
+    fields = {
+        'latitude':'latitude','longitude':'longitude','timezone':'timezone_name',
+        'capacityAcKw':'capacity_ac_kw','tiltDeg':'tilt_deg','azimuthDeg':'azimuth_deg',
+        'mountingType':'mounting_type','meterBoundary':'meter_boundary',
+        'commissioningDate':'commissioning_date','operatorNotes':'operator_notes',
+    }
+    if not changes or any(name not in fields for name in changes):
+        raise ValueError('patch must contain supported passport fields')
+    values = {fields[name]:value for name,value in changes.items()}
+    if values.get('commissioning_date') is not None:
+        value = values['commissioning_date']
+        if not isinstance(value,str):
+            raise ValueError('commissioningDate must be ISO date')
+        values['commissioning_date'] = date.fromisoformat(value)
+    validated = validate_profile(PlantProfileInput(**values))
+    if 'timezone_name' in values and validated.timezone_name is not None:
+        try:
+            ZoneInfo(validated.timezone_name)
+        except (ZoneInfoNotFoundError,ValueError) as error:
+            raise ValueError('timezone must be an IANA zone') from error
+    assignments = psycopg.sql.SQL(',').join(
+        psycopg.sql.SQL('{}=%s').format(psycopg.sql.Identifier(name)) for name in values)
+    with psycopg.connect(database_url,connect_timeout=5) as connection:
+        owned = connection.execute('''SELECT p.public_id FROM plant p
+            WHERE p.tenant_id=%s AND p.public_id=%s AND EXISTS
+            (SELECT 1 FROM membership m WHERE m.tenant_id=p.tenant_id
+                AND m.subject=%s AND m.active) FOR UPDATE''',
+            (tenant_id,plant_id,subject)).fetchone()
+        if owned is None:
+            raise PermissionError('active membership and tenant-owned plant required')
+        connection.execute('INSERT INTO plant_profile(plant_id) VALUES (%s) ON CONFLICT DO NOTHING',(plant_id,))
+        connection.execute(psycopg.sql.SQL('UPDATE plant_profile SET {},updated_at=now() WHERE plant_id=%s').format(assignments),
+            tuple(getattr(validated,name) for name in values)+(plant_id,))

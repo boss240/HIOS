@@ -23,7 +23,7 @@ from app.deye_openapi import DeyeApiError
 from app.deye_telemetry import inspect_station_day
 from app.manual_actuals_import import (preview_manual_actuals_csv, preview_manual_actuals_xlsx,
                                        persist_manual_actuals_csv, persist_manual_actuals_xlsx)
-from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding
+from app.plant_onboarding import PlantProfileInput, add_read_only_binding, create_plant, get_onboarding, update_plant_profile
 from app.weather_provider_registry import PROVIDER_CATALOG, configure_channel, list_channels
 from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_rows, xlsx_export
 from app.rdn_price_store import create_scenario, list_scenarios, scenario_prices_for_intervals
@@ -408,6 +408,27 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except PermissionError:
             raise HTTPException(404)
         return {"data": {"id": str(item.request_id), "provider": item.provider, "status": item.status}}
+    @api.get("/dashboard/plants/{plant_id}/profile", include_in_schema=False)
+    def dashboard_plant_profile(request: Request, plant_id: str):
+        tenant,subject = dashboard_context(request)
+        try:
+            profile = get_onboarding(database_url=database_url,subject=subject,tenant_id=tenant,plant_id=plant_id)
+            profile.pop('cloudBindings',None)
+            return {'data':profile}
+        except PermissionError:
+            raise HTTPException(403)
+
+    @api.patch("/dashboard/plants/{plant_id}/profile", include_in_schema=False)
+    def dashboard_update_profile(request: Request, plant_id: str, body: dict = Body(...)):
+        tenant,subject = dashboard_context(request)
+        try:
+            update_plant_profile(database_url=database_url,subject=subject,tenant_id=tenant,plant_id=plant_id,changes=body)
+            return {'data':{'updated':True}}
+        except PermissionError:
+            raise HTTPException(403)
+        except ValueError:
+            return JSONResponse(status_code=400,content={'error':{'code':'PLANT_PROFILE_INVALID'}})
+
     @api.get("/dashboard/plants/{plant_id}/weather-captures", include_in_schema=False)
     def dashboard_weather_captures(request: Request, plant_id: str):
         tenant, subject = dashboard_context(request)

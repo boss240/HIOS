@@ -1,7 +1,7 @@
 """Bounded, read-only Deye collection evidence for two named pilot stations.
 
 The module deliberately returns coverage and quality evidence only.  It never
-stores raw provider rows, maps their units, or exposes a Deye control action.
+stores raw provider rows, maps their units, exposes native station identifiers, or exposes a Deye control action.
 """
 from __future__ import annotations
 
@@ -47,7 +47,6 @@ def collect_closed_pilot_day(client: DeyeReadOnlyClient, *, station_id: int,
     quality = asdict(audit_station_frame_history(response))
     return {
         "dateUtc": closed_day_utc.isoformat(),
-        "stationId": str(station_id),
         "hourlyCoverage": hourly_coverage(response),
         "quality": quality,
         "persistence": "not_written_pending_field_mapping",

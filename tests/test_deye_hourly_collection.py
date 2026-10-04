@@ -39,7 +39,7 @@ def test_collection_reads_one_closed_day_and_returns_aggregate_evidence(monkeypa
     }))
     report = collect_closed_pilot_day(client, station_id=7, closed_day_utc=date(2024, 9, 1))
     assert client.calls == ["token", ("short-lived", 7, date(2024, 9, 1))]
-    assert report["stationId"] == "7"
+    assert "stationId" not in report
     assert report["hourlyCoverage"] == ({"hourUtc": "2024-09-01T00:00:00Z", "frameCount": 2},)
     assert report["quality"]["sample_count"] == 3
     assert report["persistence"] == "not_written_pending_field_mapping"
@@ -67,4 +67,4 @@ def test_collection_reuses_caller_token_without_another_authentication():
     client = TokenReusingDeye()
     report = collect_closed_pilot_day(client, station_id=7, closed_day_utc=date(2024, 9, 1), token="shared")
     assert client.calls == [("shared", 7, date(2024, 9, 1))]
-    assert report["stationId"] == "7"
+    assert "stationId" not in report

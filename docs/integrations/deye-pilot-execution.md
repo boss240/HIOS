@@ -102,7 +102,7 @@ After the two pilots are discovered, an operator may run the manual workflow
 `Deye pilot hourly read-only collection` for **one completed UTC date**. It
 uses the fixed station-list and station-history read paths to select only
 `Погреби` and `Борщів`, then returns per-hour frame coverage and quality
-statistics for each pilot.
+statistics for each pilot. It emits only the pilot key, aggregate coverage and quality evidence; native station IDs, raw frames, credentials and tokens are never printed or retained.
 
 The workflow requires both the ISO date and the exact acknowledgement
 `READ_ONLY_HOURLY`. It has read-only repository permissions, no schedule and a

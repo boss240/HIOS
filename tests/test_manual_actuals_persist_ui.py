@@ -7,3 +7,5 @@ def test_manual_actuals_commit_is_explicit():
     assert 'payload.confirmPersist = true' in script
     assert '/dashboard/actuals/manual-import/file-commit' in script
     assert 'xlsxBase64' in script
+    assert 'missingHours' in script
+    assert 'duplicateIntervals' in script

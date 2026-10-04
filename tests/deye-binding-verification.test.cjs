@@ -27,3 +27,12 @@ test('changed plant invalidates late successful verification',async()=>{
   release(response({status:'verified',readOnly:true,deviceCount:4}));await pending;
   assert.doesNotMatch(ids.deyeBindingStatus.textContent,/Доступ підтверджено/);
 });
+test('typing station reference while plants load does not discard the plant list',async()=>{
+  let release;const ids=setup(()=>new Promise(r=>release=r));
+  ids.deyeBindingStation.value='7';ids.deyeBindingStation.events.input();
+  release(response([{id:'a',name:'Plant A'}]));await tick();
+  assert.equal(ids.deyeBindingPlant.children.length,1);
+  assert.equal(ids.deyeBindingStation.value,'7');
+  ids.deyeBindingPlant.value='a';ids.deyeBindingPlant.events.change();
+  assert.equal(ids.verifyDeyeBinding.disabled,false);
+});

@@ -23,3 +23,10 @@
 
 #passportForm[hidden]{display:none}#plantPassport>label{display:grid;gap:6px;color:var(--muted)}#passportPlant{padding:9px;border:1px solid var(--line);border-radius:7px;background:#112c35;color:var(--ink)}
 #weatherCapturePlant{display:block;width:100%;max-width:520px;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:#112c35;color:var(--ink);font:inherit}#weatherCaptureStatus{color:var(--muted)}
+.forecast-readiness>label{display:block;margin-top:14px;color:var(--muted)}
+.forecast-readiness>select,.forecast-readiness>input{display:block;width:100%;max-width:100%;min-width:0;margin:6px 0 12px;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);font:inherit;min-height:44px}
+.forecast-readiness>button{min-height:44px;max-width:100%;white-space:normal;margin:6px 0;padding:11px 16px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);font:inherit;cursor:pointer}
+.forecast-readiness>button:disabled{opacity:.55;cursor:default}
+.forecast-readiness>select:focus-visible,.forecast-readiness>input:focus-visible,.forecast-readiness>button:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+.forecast-readiness p,.readiness-item h3{overflow-wrap:anywhere}
+@media(max-width:600px){.forecast-readiness{padding:16px}.forecast-readiness>button{width:100%}}

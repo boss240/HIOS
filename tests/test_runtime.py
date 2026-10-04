@@ -29,6 +29,7 @@ from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 from app.provider_forecast_capture import store_forecast_capture
 from app.weather_provider_response import ProviderWeatherInterval
 from app.provider_forecast_collection import collect_provider_forecast, list_provider_captures
+from app.plant_onboarding import update_plant_profile, get_onboarding
 from app.actual_generation_store import (
     ActualGenerationObservation,
     ActualGenerationSnapshot,
@@ -38,6 +39,43 @@ from app.actuals_field_mapping import EnergySemantics
 from app.actuals_alignment import load_aligned_power_samples
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
+
+
+def test_passport_patch_preserves_other_fields_and_checks_owner(db):
+    with psycopg.connect(db) as connection:
+        connection.execute("INSERT INTO plant_profile(plant_id,tilt_deg,operator_notes) VALUES ('002',30,'keep')")
+    options = dict(database_url=db,tenant_id='a',plant_id='002',changes={'latitude':50.54085,'longitude':30.62605,'timezone':'Europe/Kyiv'})
+    with pytest.raises(PermissionError):
+        update_plant_profile(subject='bob',**options)
+    update_plant_profile(subject='alice',**options)
+    saved = get_onboarding(database_url=db,subject='alice',tenant_id='a',plant_id='002')
+    assert saved['latitude'] == 50.54085
+    assert saved['longitude'] == 30.62605
+    assert saved['tiltDeg'] == 30
+    assert saved['operatorNotes'] == 'keep'
+    with pytest.raises(ValueError):
+        update_plant_profile(subject='alice',**{**options,'changes':{'latitude':91}})
+    with pytest.raises(ValueError):
+        update_plant_profile(subject='alice',**{**options,'changes':{'tenant_id':'b'}})
+    with pytest.raises(ValueError):
+        update_plant_profile(subject='alice',**{**options,'changes':{'timezone':'Invalid/Timezone'}})
+
+
+def test_dashboard_passport_updates_existing_plant_without_duplication(db,keys,monkeypatch):
+    monkeypatch.setenv('HIOS_DASHBOARD_USER','operator')
+    monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')
+    with TestClient(create_app(db,keys[1],'hios-test','hios-api')) as dashboard:
+        auth=('operator','test-only-password')
+        created=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Passport test','tiltDeg':30})
+        plant=created.json()['data']['id']
+        path=f'/dashboard/plants/{plant}/profile'
+        assert dashboard.patch(path,json={'latitude':50}).status_code == 401
+        assert dashboard.patch(path,auth=auth,json={'latitude':50,'longitude':30}).status_code == 200
+        saved=dashboard.get(path,auth=auth).json()['data']
+        assert saved['tiltDeg'] == 30
+        assert saved['latitude'] == 50
+        assert 'cloudBindings' not in saved
+        assert len(dashboard.get('/dashboard/plants',auth=auth).json()['data']) == 1
 
 
 def test_collection_persists_future_rows_and_denies_foreign_plant_before_network(db):

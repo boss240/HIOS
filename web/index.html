@@ -173,6 +173,11 @@
       <p class="card-copy">Час отримання й кількість інтервалів у PostgreSQL. Це прогнози погоди, а не розрахована генерація чи підтверджена точність. Оновлення цього списку не викликає погодні API.</p>
       <label for="weatherCapturePlant">Оберіть СЕС</label>
       <select id="weatherCapturePlant"><option value="">Оберіть об’єкт</option></select>
+      <div class="forecast-actions">
+        <button type="button" class="outline-button" id="captureGoogleWeather" disabled>Отримати Google Weather</button>
+        <button type="button" class="outline-button" id="captureSolcastWeather" disabled>Отримати Solcast</button>
+      </div>
+      <p>Кнопка отримує та зберігає новий прогноз лише для обраної СЕС. Застосовуються ліміти вашого погодного провайдера.</p>
       <p id="weatherCaptureStatus" role="status"></p>
       <div id="weatherCaptureRows" class="forecast-readiness-list"></div>
     </section>

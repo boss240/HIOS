@@ -168,9 +168,9 @@
     <section class="integration-status" id="integrationStatus" aria-label="Стан інтеграцій">
       <div class="card-head"><div><p class="eyebrow">DATA INTEGRATION</p><h2>Стан даних для точного прогнозу</h2></div></div>
       <div class="integration-grid">
-        <article class="integration-card waiting"><span>DEYE CLOUD</span><strong>Очікується відповідь Deye</strong><p>Станції «Погреби» й «Борщів» підтверджені. API token інколи відхиляється кодом 2101025.</p></article>
-        <article class="integration-card ready"><span>RESERVE IMPORT</span><strong>Готово до завантаження</strong><p>Використайте погодинний експорт Deye як CSV або Excel. Дані потраплять до аналізу після перевірки одиниць.</p><p><a href="/downloads/hios-deye-hourly-actuals-template.csv" download>Шаблон CSV</a> · <a href="/downloads/HIOS_Deye_Hourly_Actuals_Template.xlsx" download>Шаблон Excel</a></p></article>
-        <article class="integration-card pending"><span>FORECAST QUALITY</span><strong>Очікує actuals</strong><p>Після нормалізації HIOS порівняє факт із Google Weather та Solcast по кожній годині й кожній СЕС.</p></article>
+        <article class="integration-card ready"><span>DEYE CLOUD</span><strong>Read-only дані підтверджено</strong><p>«Погреби» й «Борщів» відповіли на контрольний запит. Перед імпортом HIOS ще перевіряє одиниці, часову зону та межі інтервалів.</p></article>
+        <article class="integration-card ready"><span>RESERVE IMPORT</span><strong>Готово до завантаження</strong><p>Погодинний експорт Deye у CSV або Excel — резервний шлях для 14–30 днів фактів. Дані потраплять до аналізу лише після перевірки структури та одиниць.</p><p><a href="/downloads/hios-deye-hourly-actuals-template.csv" download>Шаблон CSV</a> · <a href="/downloads/HIOS_Deye_Hourly_Actuals_Template.xlsx" download>Шаблон Excel</a></p></article>
+        <article class="integration-card pending"><span>FORECAST QUALITY</span><strong>Очікує перевірені actuals</strong><p>Після нормалізації HIOS порівняє факт із Google Weather, Solcast і локальними кандидатами по кожній годині та кожній СЕС.</p></article>
       </div>
     </section>
     <section class="manual-import" id="manualActuals">

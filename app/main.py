@@ -430,6 +430,23 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except ValueError:
             return JSONResponse(status_code=400,content={'error':{'code':'PLANT_PROFILE_INVALID'}})
 
+    @api.get("/dashboard/plants/{plant_id}/solar-history.xlsx", include_in_schema=False)
+    def dashboard_solar_history_excel(request: Request, plant_id: str, start: str, end: str):
+        from app.deye_solar_archive import list_device_solar_archive
+        from app.deye_solar_export import solar_archive_xlsx
+        tenant,subject=dashboard_context(request)
+        try:
+            rows=list_device_solar_archive(database_url,subject,tenant_id=tenant,
+                plant_id=plant_id,start_day=date.fromisoformat(start),end_day=date.fromisoformat(end))
+            return Response(solar_archive_xlsx(rows),
+                media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                headers={'Content-Disposition':'attachment; filename="hios-device-pv-hours.xlsx"',
+                         'Cache-Control':'no-store'})
+        except PermissionError:
+            raise HTTPException(403)
+        except ValueError:
+            return JSONResponse(status_code=400,content={'error':{'code':'SOLAR_ARCHIVE_WINDOW_INVALID'}})
+
     @api.get("/dashboard/plants/{plant_id}/solar-history", include_in_schema=False)
     def dashboard_solar_history(request: Request, plant_id: str, start: str, end: str):
         from app.deye_solar_archive import list_device_solar_archive

@@ -1022,6 +1022,16 @@ def test_plant_onboarding_api_creates_and_exposes_only_metadata(client, keys):
     assert client.get(f"/plants/{plant_id}/onboarding", headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404
 
 
+@pytest.mark.parametrize('status',['verified','blocked',None,True])
+def test_binding_registration_cannot_claim_server_verification(client,db,keys,status):
+    response=client.post('/plants/002/cloud-bindings',headers=headers(keys),json={
+        'provider':'deye_cloud','externalPlantId':'7','credentialReference':'server-secret',
+        'consentRecordReference':'consent','mappingVersion':'deye-v1','discoveryStatus':status})
+    assert response.status_code==400
+    with psycopg.connect(db) as connection:
+        assert connection.execute('SELECT count(*) FROM inverter_cloud_binding').fetchone()[0]==0
+
+
 def test_dashboard_can_create_its_isolated_plant_registry(db, keys, monkeypatch):
     monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
     monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")

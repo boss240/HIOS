@@ -221,6 +221,8 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
     def register_cloud_binding(request: Request, plant_id: str, body: dict = Body(...)):
         tenant, subject = authenticated_context(request)
         try:
+            if body.get("discoveryStatus", "pending") != "pending":
+                raise ValueError("verification status is assigned by the server")
             binding = InverterCloudBinding(
                 tenant_id=tenant, plant_id=plant_id,
                 provider=InverterCloudProvider(body.get("provider")),
@@ -230,7 +232,7 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
                 mapping_version=body.get("mappingVersion"),
             )
             binding_id = add_read_only_binding(database_url=database_url, subject=subject, binding=binding,
-                                               discovery_status=body.get("discoveryStatus", "pending"))
+                                               discovery_status="pending")
         except (TypeError, ValueError):
             raise HTTPException(400)
         except PermissionError:

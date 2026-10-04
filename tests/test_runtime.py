@@ -1022,6 +1022,16 @@ def test_plant_onboarding_api_creates_and_exposes_only_metadata(client, keys):
     assert client.get(f"/plants/{plant_id}/onboarding", headers=headers(keys, sub="bob", tenant_id="b")).status_code == 404
 
 
+@pytest.mark.parametrize('status',['verified','blocked',None,True])
+def test_binding_registration_cannot_claim_server_verification(client,db,keys,status):
+    response=client.post('/plants/002/cloud-bindings',headers=headers(keys),json={
+        'provider':'deye_cloud','externalPlantId':'7','credentialReference':'server-secret',
+        'consentRecordReference':'consent','mappingVersion':'deye-v1','discoveryStatus':status})
+    assert response.status_code==400
+    with psycopg.connect(db) as connection:
+        assert connection.execute('SELECT count(*) FROM inverter_cloud_binding').fetchone()[0]==0
+
+
 def test_dashboard_can_create_its_isolated_plant_registry(db, keys, monkeypatch):
     monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
     monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")
@@ -1231,6 +1241,39 @@ def test_bound_device_collection_saves_and_skips_without_reauthentication(db):
         assert document['hours'][0]['derivedEnergyKwh']==1
         assert 'selected' not in str(document)
         assert c.execute('SELECT count(*) FROM actual_generation_snapshot').fetchone()[0]==0
+
+
+@pytest.mark.parametrize('mode',['success','missing_station','failed_auth','missing_devices','wrong_reference','foreign_subject'])
+def test_server_deye_binding_verification_commits_only_confirmed_access(db,mode):
+    from app.deye_binding_verification import verify_deye_binding
+    binding=uuid4()
+    with psycopg.connect(db) as c:
+        c.execute('''INSERT INTO inverter_cloud_binding(binding_id,tenant_id,plant_id,provider,
+            external_plant_id,credential_reference,consent_record_reference,mapping_version)
+            VALUES (%s,'a','002','deye_cloud','7','server-ref','consent','deye-v1')''',(binding,))
+    class Fake:
+        auth=0
+        def obtain_token(self):
+            self.auth+=1
+            if mode=='failed_auth':raise RuntimeError('redacted provider failure')
+            return 'token'
+        def list_stations(self,token,*,page,size):
+            assert (page,size)==(1,100)
+            return {'data':{'records':[{'id':8 if mode=='missing_station' else 7,'name':'station'}]}}
+        def station_devices(self,token,station_ids,*,size):
+            assert station_ids==(7,)
+            return {'deviceListItems':[] if mode=='missing_devices' else [{'deviceSn':'private'}]}
+    api=Fake()
+    kwargs=dict(tenant_id='a',plant_id='002',binding_id=binding,
+        credential_reference='wrong' if mode=='wrong_reference' else 'server-ref',client=api)
+    if mode=='success':
+        assert verify_deye_binding(db,'alice',**kwargs)=={'status':'verified','readOnly':True,'deviceCount':1}
+    else:
+        with pytest.raises((PermissionError,ValueError,RuntimeError)):
+            verify_deye_binding(db,'bob' if mode=='foreign_subject' else 'alice',**kwargs)
+    if mode in ('wrong_reference','foreign_subject'):assert api.auth==0
+    with psycopg.connect(db) as c:
+        assert c.execute('SELECT discovery_status FROM inverter_cloud_binding WHERE binding_id=%s',(binding,)).fetchone()[0]==('verified' if mode=='success' else 'pending')
 
 
 def test_dashboard_audits_one_past_deye_day_without_persisting_raw_telemetry(db, keys, monkeypatch):

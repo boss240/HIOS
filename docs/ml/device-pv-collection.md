@@ -9,6 +9,23 @@ the plant's verified read-only Deye binding, and the selected device's membershi
 in that station. Hold a collection lock for the tenant/plant/device during the
 entire operation. Never select a device by a guessed name or coordinate alone.
 
+## Binding verification
+
+Public binding registration creates only `pending` bindings. A caller cannot
+assign `verified` or `blocked` through the registration API.
+`verify_deye_binding` is a server-only service accepting a binding UUID and an
+approved credential reference already resolved by the server. It locks active
+ownership and the binding, confirms the exact station ID in the first bounded
+account page (up to 100 stations), and requires a non-empty, non-truncated list
+of unique device serials returned for that station. Only then is `verified`
+committed. No match on that page is insufficient evidence, even if the account
+has further pages; the service fails without guessing or changing the binding.
+Provider or validation failures roll back the verification transaction.
+
+This verifies station access, not installed PV geometry, meter boundaries or
+forecast accuracy. A later collection must still authenticate and confirm the
+selected device's station membership. No control endpoints are called.
+
 Provide scoped callbacks:
 
 - `existing_capture(day)` checks the selected tenant/plant/device hash/day.

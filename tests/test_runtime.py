@@ -76,6 +76,47 @@ def test_device_solar_capture_is_owned_idempotent_and_immutable(db):
             connection.execute('UPDATE device_solar_capture SET document=document')
 
 
+def test_weather_pv_analysis_pairs_owned_captures_and_denies_mixed_plants(db,keys,monkeypatch):
+    from datetime import date
+    from app.deye_solar_capture_store import store_device_solar_capture
+    monkeypatch.setenv('HIOS_DASHBOARD_USER','operator')
+    monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')
+    auth=('operator','test-only-password')
+    with TestClient(create_app(db,keys[1],'hios-test','hios-api')) as dashboard:
+        plant=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Alignment A'}).json()['data']['id']
+        other=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Alignment B'}).json()['data']['id']
+        with psycopg.connect(db) as connection:
+            tenant,subject=connection.execute('SELECT p.tenant_id,m.subject FROM plant p JOIN membership m ON m.tenant_id=p.tenant_id WHERE p.public_id=%s',(plant,)).fetchone()
+        receipt=datetime(2020,1,1,9,tzinfo=timezone.utc)
+        start=receipt+timedelta(hours=1)
+        selected=[]
+        for provider,values in [('google_weather',{'temperature_c':20,'cloud_cover_pct':10,'wind_speed_ms':2}),
+                                ('solcast',{'irradiance_global_wm2':500,'irradiance_direct_wm2':400,'irradiance_diffuse_wm2':100})]:
+            selected.append(str(store_forecast_capture(db,subject,capture_id=uuid4(),tenant_id=tenant,plant_id=plant,
+                provider=provider,mapping_version='v1',captured_at=receipt,
+                intervals=(ProviderWeatherInterval(provider,start,start+timedelta(hours=1),values),))))
+        body={'deviceSn':'selected','dataList':[{'time':str(int(start.timestamp())+offset),
+            'itemList':[{'key':'TotalSolarPower','unit':'W','value':'1000'}]} for offset in range(0,3601,300)]}
+        def store(target):
+            return str(store_device_solar_capture(db,subject,tenant_id=tenant,plant_id=target,
+                device_serial='selected',day=date(2020,1,1),retrieved_at=datetime(2020,1,2,tzinfo=timezone.utc),body=body))
+        solar,foreign=store(plant),store(other)
+        request={'weatherCaptureIds':selected,'solarCaptureId':solar,'forecastOriginUtc':receipt.isoformat()}
+        path='/dashboard/plants/'+plant+'/weather-pv-analysis'
+        assert dashboard.post(path,json=request).status_code==401
+        result=dashboard.post(path,json=request,auth=auth)
+        assert result.status_code==200
+        data=result.json()['data'];assert len(data['pairs'])==1
+        assert data['pairs'][0]['derivedDevicePvEnergyKwh']==pytest.approx(1)
+        assert data['generationAccuracy']=='not_evaluated' and data['solarCaptureId']==solar
+        assert dashboard.post(path,json={**request,'solarCaptureId':foreign},auth=auth).status_code==403
+        assert dashboard.post(path,json={**request,'weatherCaptureIds':[selected[0],selected[0]]},auth=auth).status_code==400
+        assert dashboard.post(path,json={**request,'analysisAsOfUtc':'2099-01-01'},auth=auth).status_code==400
+        with psycopg.connect(db) as connection:
+            assert connection.execute('SELECT count(*) FROM actual_generation_snapshot').fetchone()[0]==0
+            assert connection.execute('SELECT count(*) FROM forecast_run').fetchone()[0]==0
+
+
 def test_solar_archive_http_requires_auth_owned_plant_and_bounded_dates(db,keys,monkeypatch):
     monkeypatch.setenv('HIOS_DASHBOARD_USER','operator')
     monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')

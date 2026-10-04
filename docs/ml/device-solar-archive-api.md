@@ -16,6 +16,14 @@ device energy estimates, not certified whole-plant AC meter readings. Missing
 coverage is retained. The endpoint never calls Deye, imports data or controls
 equipment.
 
+The same protected window is available as an Excel download at
+`/dashboard/plants/{plant_id}/solar-history.xlsx?start=YYYY-MM-DD&end=YYYY-MM-DD`.
+The dashboard displays its download link after a successful archive read.
+It preserves numeric energy, blank missing values, coverage seconds, statuses,
+UTC dates, capture UUID/checksum/receipt and mapping version. Strings are exported
+as text, never formulas. Download responses disable caching. The file represents
+device PV energy estimates and must not be relabeled as plant AC meter readings.
+
 ## Verified cloud archive and acquisition limitation
 
 On 2026-10-04 the PostgreSQL read-back audit confirmed one capture per pilot for

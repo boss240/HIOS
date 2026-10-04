@@ -4,6 +4,7 @@
   const refresh = document.querySelector('#refreshSolarHistory');
   const status = document.querySelector('#solarHistoryStatus');
   const rows = document.querySelector('#solarHistoryRows');
+  const exportLink = document.querySelector('#exportSolarHistory');
   if (!plant || !day || !refresh || !status || !rows) return;
   let generation = 0;
   day.value = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
@@ -35,6 +36,7 @@
   }
   async function load() {
     const epoch = ++generation; rows.replaceChildren();
+    if (exportLink) {exportLink.hidden=true;exportLink.removeAttribute('href');}
     if (!plant.value || !/^\d{4}-\d{2}-\d{2}$/.test(day.value)) {status.textContent='Оберіть СЕС і дату.';return;}
     status.textContent='Читаємо фактичні дані зі сховища…';
     try {
@@ -57,6 +59,10 @@
         wrapper.append(table);card.append(wrapper);rows.append(card);
       });
       status.textContent=`Архів: ${captures.length} інвертор(и). Часткові години не є повним фактом генерації.`;
+      if (exportLink) {
+        exportLink.href=`/dashboard/plants/${encodeURIComponent(plant.value)}/solar-history.xlsx?start=${day.value}&end=${day.value}`;
+        exportLink.hidden=false;
+      }
     } catch (error) {if(epoch===generation){rows.replaceChildren();status.textContent=error.message;}}
   }
   async function init() {

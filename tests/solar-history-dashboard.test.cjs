@@ -7,12 +7,13 @@ class Element {
   constructor(){this.children=[];this.events={};this.style={};this.value='';this.attributes={};}
   replaceChildren(...v){this.children=v;} append(...v){this.children.push(...v);} add(v){this.children.push(v);}
   addEventListener(k,v){this.events[k]=v;} setAttribute(k,v){this.attributes[k]=v;}
+  removeAttribute(k){delete this.attributes[k];if(k==='href')delete this.href;}
   set innerHTML(v){throw Error('unsafe HTML');}
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const response=data=>({ok:true,json:async()=>({data})});
 function setup(fetch){
-  const ids=Object.fromEntries(['solarHistoryPlant','solarHistoryDate','refreshSolarHistory','solarHistoryStatus','solarHistoryRows'].map(k=>[k,new Element()]));
+  const ids=Object.fromEntries(['solarHistoryPlant','solarHistoryDate','refreshSolarHistory','solarHistoryStatus','solarHistoryRows','exportSolarHistory'].map(k=>[k,new Element()]));
   vm.runInNewContext(source,{document:{querySelector:s=>ids[s.slice(1)],createElement:()=>new Element(),createElementNS:()=>new Element()},
     fetch,Option:class{constructor(label,value){this.textContent=label;this.value=value;}},Date,Number,Math});return ids;
 }
@@ -26,6 +27,8 @@ test('read-only rendering distinguishes missing and partial energy with safe pla
   assert.equal(table.children[1].children[1].textContent,'—');
   assert.equal(table.children[2].children[3].textContent,'Часткова година');
   assert.equal(table.children[3].children[3].textContent,'Повна година');
+  assert.equal(ids.exportSolarHistory.hidden,false);
+  assert.match(ids.exportSolarHistory.href,/\/a\/solar-history.xlsx\?start=2026-10-03&end=2026-10-03$/);
   assert.ok(calls.every(([,o])=>!o.method && o.cache==='no-store'));
 });
 test('previous plant response cannot overwrite current selection',async()=>{
@@ -38,4 +41,5 @@ test('denied response clears stale measurements',async()=>{
   const ids=setup(async url=>url==='/dashboard/plants'?response([{id:'a',name:'A'}]):{ok:false});
   await tick();ids.solarHistoryRows.append(new Element());ids.solarHistoryPlant.value='a';ids.solarHistoryDate.value='2026-10-03';
   await ids.solarHistoryPlant.events.change();assert.equal(ids.solarHistoryRows.children.length,0);assert.match(ids.solarHistoryStatus.textContent,/Перевірте доступ/);
+  assert.equal(ids.exportSolarHistory.hidden,true);assert.equal(ids.exportSolarHistory.href,undefined);
 });

@@ -85,6 +85,11 @@ def test_solar_archive_http_requires_auth_owned_plant_and_bounded_dates(db,keys,
         path='/dashboard/plants/'+plant+'/solar-history'
         query={'start':'2020-01-01','end':'2020-01-31'}
         assert dashboard.get(path,params=query).status_code==401
+        assert dashboard.get(path+'.xlsx',params=query).status_code==401
+        excel=dashboard.get(path+'.xlsx',params=query,auth=auth)
+        assert excel.status_code==200 and excel.content.startswith(b'PK')
+        assert excel.headers['cache-control']=='no-store'
+        assert dashboard.get('/dashboard/plants/001/solar-history.xlsx',params=query,auth=auth).status_code==403
         assert dashboard.get(path,params=query,auth=auth).json()=={'data':[]}
         assert dashboard.get('/dashboard/plants/001/solar-history',params=query,auth=auth).status_code==403
         assert dashboard.get(path,params={**query,'end':'2020-02-01'},auth=auth).status_code==400

@@ -29,6 +29,9 @@ from app.hourly_planning import HourlyForecast, csv_export, hourly_plan, plan_ro
 from app.rdn_price_store import create_scenario, list_scenarios, scenario_prices_for_intervals
 from app.inverter_connection_request import list_connection_requests, request_connection
 from app.forecast_readiness import list_readiness
+from app.provider_forecast_collection import collect_provider_forecast, list_provider_captures
+from app.weather_provider_credentials import WeatherProviderConfigurationError
+from app.weather_provider_clients import WeatherProviderHttpError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -405,6 +408,33 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except PermissionError:
             raise HTTPException(404)
         return {"data": {"id": str(item.request_id), "provider": item.provider, "status": item.status}}
+    @api.get("/dashboard/plants/{plant_id}/weather-captures", include_in_schema=False)
+    def dashboard_weather_captures(request: Request, plant_id: str):
+        tenant, subject = dashboard_context(request)
+        try:
+            return {"data": list_provider_captures(database_url,subject,
+                tenant_id=tenant,plant_id=plant_id)}
+        except PermissionError:
+            raise HTTPException(403)
+
+    @api.post("/dashboard/plants/{plant_id}/weather-captures", status_code=201, include_in_schema=False)
+    def dashboard_collect_weather(request: Request, plant_id: str, body: dict = Body(...)):
+        tenant, subject = dashboard_context(request)
+        if body.get("confirm") != "CAPTURE_FORECAST":
+            return JSONResponse(status_code=400,content={"error":{"code":"CAPTURE_CONFIRMATION_REQUIRED"}})
+        try:
+            result = collect_provider_forecast(database_url,subject,tenant_id=tenant,
+                plant_id=plant_id,provider=body.get("provider"))
+            return {"data":result}
+        except PermissionError:
+            raise HTTPException(403)
+        except WeatherProviderConfigurationError:
+            return JSONResponse(status_code=503,content={"error":{"code":"WEATHER_KEY_NOT_CONFIGURED"}})
+        except WeatherProviderHttpError:
+            return JSONResponse(status_code=502,content={"error":{"code":"WEATHER_PROVIDER_UNAVAILABLE"}})
+        except ValueError:
+            return JSONResponse(status_code=400,content={"error":{"code":"WEATHER_CAPTURE_INVALID"}})
+
     @api.get("/dashboard/weather-providers", include_in_schema=False)
     def dashboard_weather_providers(request: Request):
         tenant, subject = dashboard_context(request)

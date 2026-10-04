@@ -13,6 +13,7 @@ from app.inverter_cloud import InverterCloudProvider
 from app.provider_ensemble import ProviderObservation, calibrate
 from app.provider_ensemble_store import replace_profile
 from app.weather_provider_registry import configure_channel
+from app.forecast_store import ForecastPoint, ForecastRun, create_or_get_run, publish_points
 
 
 def test_readiness_is_per_plant_and_advances_only_when_evidence_exists(db):
@@ -34,12 +35,28 @@ def test_readiness_is_per_plant_and_advances_only_when_evidence_exists(db):
         observation=observation,
     ))
     pending = {item.plant_id: item for item in list_readiness(database_url=db, tenant_id="a", subject="alice")}["002"]
-    assert pending.state == "calibration_pending"
+    assert pending.state == "awaiting_forecast_points"
     assert pending.provider_count == 1
     assert pending.actual_interval_count == 1
+    assert pending.forecast_point_count == 0
+    assert pending.matched_point_count == 0
     assert [(channel.provider, channel.role, channel.status) for channel in pending.weather_channels] == [
         ("google_weather", "primary", "configured")
     ]
+
+    run = ForecastRun(
+        run_id=uuid4(), tenant_id="a", plant_id="002", forecast_origin_utc=datetime(2026, 8, 31, tzinfo=timezone.utc),
+        horizon_id="day_ahead", model_id="MODEL-001", model_version="0.1", feature_version="features-1",
+        input_hash="a" * 64, configuration_hash="b" * 64, code_commit="abcdef1", status="normal",
+    )
+    create_or_get_run(db, "alice", run)
+    publish_points(db, "alice", "a", run.run_id, (
+        ForecastPoint(datetime(2026, 9, 1, tzinfo=timezone.utc), datetime(2026, 9, 1, 1, tzinfo=timezone.utc), 2.5, 2.5),
+    ))
+    evaluable = {item.plant_id: item for item in list_readiness(database_url=db, tenant_id="a", subject="alice")}["002"]
+    assert evaluable.state == "evaluation_ready"
+    assert evaluable.forecast_point_count == 1
+    assert evaluable.matched_point_count == 1
 
     profile = calibrate(plant_key="002", rated_ac_kw=10, observations=(
         ProviderObservation("002", "google_weather", 3, 2.5),

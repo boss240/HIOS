@@ -4,7 +4,9 @@
   const labels = {
     awaiting_cloud_authorization: "Очікується read-only підтвердження",
     awaiting_actuals: "Очікуються фактичні дані",
-    calibration_pending: "Дані збираються для кореляції",
+    awaiting_forecast_points: "Є фактичні дані — очікуються прогнозні точки",
+    awaiting_interval_alignment: "Є дані — інтервали ще не збігаються",
+    evaluation_ready: "Є пари «прогноз / факт» для оцінки",
     calibrated: "Мікс джерел відкалібровано"
   };
   const text = (value) => document.createTextNode(value);
@@ -38,7 +40,7 @@
     const state = document.createElement("span");
     state.append(text(labels[item.state] || "Статус уточнюється"));
     const details = document.createElement("p");
-    details.append(text(`Фактів: ${item.actualIntervalCount}; погодних каналів: ${item.configuredProviderCount}; відкалібровано: ${item.calibratedProviderCount}.`));
+    details.append(text(`Фактів: ${item.actualIntervalCount}; прогнозних точок: ${item.forecastPointCount}; пар для оцінки: ${item.matchedPointCount}; погодних каналів: ${item.configuredProviderCount}.`));
     const channels = list("readiness-sources", item.weatherChannels || [], sourceLabel,
       "Погодні канали ще не додано.");
     const scores = list("readiness-scores", item.providerScores || [], scoreLabel,

@@ -101,9 +101,18 @@ until the per-plant quality, reconciliation and tenant-isolation gates pass.
 
 After the two pilots are discovered, an operator may run the manual workflow
 `Deye pilot hourly read-only collection` for **one completed UTC date**. It
-uses the fixed station-list and station-history read paths to select only
+uses the fixed station-list and `/v1.0/station/history/power` read paths to select only
 `Погреби` and `Борщів`, then returns per-hour frame coverage and quality
 statistics for each pilot. It emits only the pilot key, aggregate coverage and quality evidence; native station IDs, raw frames, credentials and tokens are never printed or retained.
+
+The power-history request uses ten-digit Unix epoch seconds, from 00:00:00
+through 23:59:59 UTC. Calendar-date `/station/history` requests must not be
+treated as UTC windows: the 2026-10-03 pilot response started at 21:00 UTC on
+the previous day. Exact timestamp bounds avoid that station-day ambiguity.
+The endpoint contract is documented in the official
+[Deye Open MCP reference](https://developer.deyecloud.com/openmcp/docs/deye-open-mcp-tools.html#station_history_power).
+This change establishes request boundaries; live response coverage and field
+units still require verification before database ingestion.
 
 The workflow requires both the ISO date and the exact acknowledgement
 `READ_ONLY_HOURLY`. It has read-only repository permissions, no schedule and a

@@ -31,6 +31,11 @@ def test_coverage_groups_valid_frames_by_utc_hour_without_values():
     assert coverage == ({"hourUtc": "2024-09-01T00:00:00Z", "frameCount": 2},)
 
 
+@pytest.mark.parametrize("timestamp", [float("nan"), float("inf"), float("-inf")])
+def test_nonfinite_provider_timestamp_cannot_crash_coverage(timestamp):
+    assert hourly_coverage({"stationDataItems": [{"timeStamp": timestamp}]}) == ()
+
+
 def test_collection_reads_one_closed_day_and_returns_aggregate_evidence(monkeypatch):
     client = FakeDeye()
     monkeypatch.setattr("app.deye_hourly_collection.datetime", type("Clock", (), {

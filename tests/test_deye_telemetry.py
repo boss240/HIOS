@@ -24,7 +24,7 @@ def test_inspection_reads_one_closed_day_and_returns_only_aggregate_quality():
     assert client.calls == ["token", ("short-lived-token", 7, date(2024, 9, 18))]
     assert report == {"sample_count": 2, "valid_timestamp_count": 2, "cadence_seconds": (900,),
                       "generation_power_numeric_count": 2, "generation_value_numeric_count": 2,
-                      "flags": (), "dateUtc": "2024-09-18", "stationId": "7", "persistence": "not_written"}
+                      "flags": (), "dateUtc": "2024-09-18", "persistence": "not_written"}
 
 
 @pytest.mark.parametrize("station_id", [0, -1, True, "7"])

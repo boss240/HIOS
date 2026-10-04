@@ -13,8 +13,8 @@ def inspect_station_day(client: DeyeReadOnlyClient, *, station_id: int,
                         closed_day_utc: date) -> dict[str, Any]:
     """Fetch one past UTC day and return only an aggregate quality report.
 
-    The function intentionally does not retain raw rows, create actuals, or
-    issue any Deye command. A separately approved field mapping is required
+    The function intentionally does not retain raw rows, create actuals, expose a
+    native station identifier, or issue any Deye command. A separately approved field mapping is required
     before telemetry can enter the forecasting evidence store.
     """
     if isinstance(station_id, bool) or not isinstance(station_id, int) or station_id <= 0:
@@ -23,6 +23,5 @@ def inspect_station_day(client: DeyeReadOnlyClient, *, station_id: int,
     response = client.station_frame_history_for_day(token, station_id, closed_day_utc=closed_day_utc)
     report = asdict(audit_station_frame_history(response))
     report["dateUtc"] = closed_day_utc.isoformat()
-    report["stationId"] = str(station_id)
     report["persistence"] = "not_written"
     return report

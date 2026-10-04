@@ -107,7 +107,7 @@ statistics for each pilot. It emits only the pilot key, aggregate coverage and q
 The workflow requires both the ISO date and the exact acknowledgement
 `READ_ONLY_HOURLY`. It has read-only repository permissions, no schedule and a
 five-minute execution limit. It does not upload an artifact, log a raw Deye
-frame, save a token, modify an inverter or create a database row.
+frame or native station ID, save a token, modify an inverter or create a database row.
 
 The result is collection evidence, not yet a calibrated actual-generation
 series. Before hourly values can be normalized and retained for forecast

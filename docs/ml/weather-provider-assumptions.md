@@ -15,6 +15,7 @@ credential, scheduler or network request.
 | Google Maps Platform Weather API | Operational weather covariates: temperature, cloud, wind, precipitation and alerts | Captured for each controlled run; never used as an irradiance substitute |
 | Solcast | Primary operational solar-irradiance input: GHI, DNI, DHI and, where configured, GTI | Required by MODEL-001 before a forecast can publish |
 | OpenWeather Solar Irradiance | Historical issued-forecast data for training and independent backtest | Offline evaluation input only; not a runtime fallback or live publication source |
+| Open-Meteo | Independent hourly benchmark with solar and weather fields | Challenger only; no automatic operational fallback |
 
 Google's hourly forecast supplies up to 240 hours, which covers the proposed
 24–48 hour day-ahead horizon. Solcast is the selected irradiance provider for
@@ -44,7 +45,12 @@ Primary WPROV-001 and secondary WPROV-002 remain roles. Google and Solcast are
 the designated field-level primary sources. A live Solcast-compatible secondary
 source remains unselected; OpenWeather is intentionally excluded from automatic
 operational failover until its live data, units, timing and quality are separately
-validated. Regional/tertiary sources may be added after validation. Reanalysis WPROV-006
+validated. Open-Meteo is parsed only as a UTC benchmark: its documented hourly
+radiation values are preceding-hour means, so HIOS treats each timestamp as an
+interval end and retains it outside the operational failover path. The parser
+requires the provider response to declare zero UTC offset and documented metric
+units. Regional/tertiary sources may be added after validation. See the
+[Open-Meteo forecast documentation](https://open-meteo.com/en/docs). Reanalysis WPROV-006
 is for historical reconstruction; manual WPROV-007 imports require review and
 must not silently enter live ingestion. A status endpoint is supporting metadata,
 not proof that a payload is usable.

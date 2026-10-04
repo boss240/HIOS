@@ -177,6 +177,18 @@
       <div id="weatherCaptureRows" class="forecast-readiness-list"></div>
     </section>
 
+    <section class="forecast-readiness" aria-labelledby="pvAnalysisTitle">
+      <h2 id="pvAnalysisTitle">Готовність до порівняння прогнозу й факту</h2>
+      <p>Виберіть збережені джерела однієї СЕС. Перевірка читає архів і не звертається до інвертора.</p>
+      <label for="pvAnalysisPlant">СЕС</label><select id="pvAnalysisPlant"><option value="">Оберіть об’єкт</option></select>
+      <label for="pvAnalysisDay">Дата факту за UTC</label><input id="pvAnalysisDay" type="date">
+      <button id="pvAnalysisLoad" type="button">Завантажити записи</button>
+      <label for="pvAnalysisGoogle">Знімок Google Weather</label><select id="pvAnalysisGoogle"></select>
+      <label for="pvAnalysisSolcast">Знімок Solcast</label><select id="pvAnalysisSolcast"></select>
+      <label for="pvAnalysisSolar">Запис факту інвертора</label><select id="pvAnalysisSolar"></select>
+      <button id="pvAnalysisRun" type="button" disabled>Перевірити погодинний збіг</button>
+      <p id="pvAnalysisStatus" role="status"></p><div id="pvAnalysisResult" aria-live="polite"></div>
+    </section>
     <section class="forecast-readiness" aria-labelledby="solarHistoryTitle">
       <div class="card-head"><div><p class="eyebrow">ФАКТИЧНІ ДАНІ DEYE</p><h2 id="solarHistoryTitle">Сонячна генерація по годинах</h2></div><button type="button" class="outline-button" id="refreshSolarHistory">Оновити архів</button></div>
       <p class="card-copy">Розрахована енергія з PV-потужності окремого інвертора. Це не покази AC-лічильника всієї СЕС. Зелені години — повне покриття, жовті — часткове; пропуски не вважаються нулем. Час — UTC. Перегляд не викликає Deye API.</p>
@@ -202,6 +214,7 @@
   <script src="/assets/plant-passport.js" defer></script>
   <script src="/assets/weather-capture-archive.js" defer></script>
   <script src="/assets/solar-history-dashboard.js" defer></script>
+  <script src="/assets/weather-pv-analysis.js" defer></script>
 </body>
 </html>
 

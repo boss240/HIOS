@@ -48,3 +48,13 @@ def test_duplicate_measurement_and_unordered_times_rejected():
     with pytest.raises(ValueError): solar_power_samples({'dataList': [sample]})
     with pytest.raises(ValueError):
         solar_power_samples({'dataList': [row(1577836801), row(1577836800)]})
+
+
+def test_wrong_device_history_is_rejected_before_database_access():
+    from datetime import datetime, timezone
+    from app.deye_solar_capture_store import store_device_solar_capture
+    with pytest.raises(ValueError, match='match selected device'):
+        store_device_solar_capture('must-not-connect', 'alice', tenant_id='a', plant_id='p',
+            device_serial='selected', day=date(2020,1,1),
+            retrieved_at=datetime(2020,1,2,tzinfo=timezone.utc),
+            body={'deviceSn':'different','dataList':[row(1577836800)]})

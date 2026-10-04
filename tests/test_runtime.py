@@ -42,6 +42,20 @@ from app.actuals_alignment import load_aligned_power_samples
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
 
+def test_dc_capacity_patch_preserves_profile_and_checks_owner(db):
+    with psycopg.connect(db) as connection:
+        connection.execute("INSERT INTO plant_profile(plant_id,tilt_deg) VALUES ('002',30)")
+    options=dict(database_url=db,tenant_id='a',plant_id='002',changes={'capacityKw':25})
+    with pytest.raises(PermissionError):update_plant_profile(subject='bob',**options)
+    update_plant_profile(subject='alice',**options)
+    saved=get_onboarding(database_url=db,subject='alice',tenant_id='a',plant_id='002')
+    assert saved['capacityKw']==25 and saved['tiltDeg']==30
+    for invalid in (True,0,-1,float('nan'),'25'):
+        with pytest.raises(ValueError):update_plant_profile(subject='alice',**{**options,'changes':{'capacityKw':invalid}})
+    update_plant_profile(subject='alice',**{**options,'changes':{'capacityKw':None}})
+    assert 'capacityKw' not in get_onboarding(database_url=db,subject='alice',tenant_id='a',plant_id='002')
+
+
 def test_protected_candidate_preview_uses_owned_passport_and_writes_no_forecasts(db,keys,monkeypatch):
     monkeypatch.setenv('HIOS_DASHBOARD_USER','operator')
     monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')

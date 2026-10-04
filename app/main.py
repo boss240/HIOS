@@ -20,6 +20,8 @@ from app.inverter_cloud import InverterCloudBinding, InverterCloudProvider
 from app.deye_station_reference import station_id_from_reference
 from app.deye_discovery import client_from_environment as deye_client_from_environment, discover_stations
 from app.deye_openapi import DeyeApiError
+from app.deye_dashboard_binding import prepare_dashboard_binding, SERVER_CREDENTIAL_REFERENCE
+from app.deye_binding_verification import verify_deye_binding
 from app.deye_telemetry import inspect_station_day
 from app.manual_actuals_import import (preview_manual_actuals_csv, preview_manual_actuals_xlsx,
                                        persist_manual_actuals_csv, persist_manual_actuals_xlsx)
@@ -268,6 +270,25 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except (TypeError, ValueError):
             raise HTTPException(400)
         return {"data": {"plantId": plant_id, "requestId": str(item.request_id), "status": item.status}}
+
+    @api.post("/dashboard/plants/{plant_id}/deye-binding/verify", include_in_schema=False)
+    def dashboard_verify_deye_binding(plant_id: str, request: Request, body: dict = Body(...)):
+        tenant,subject=dashboard_context(request)
+        if set(body)!={"confirmReadOnly","stationReference"} or body.get("confirmReadOnly") is not True:
+            raise HTTPException(400)
+        try:
+            binding=prepare_dashboard_binding(database_url,subject,tenant_id=tenant,
+                plant_id=plant_id,station_reference=body.get("stationReference"))
+            result=verify_deye_binding(database_url,subject,tenant_id=tenant,plant_id=plant_id,
+                binding_id=binding,credential_reference=SERVER_CREDENTIAL_REFERENCE,
+                client=deye_client_from_environment())
+        except PermissionError:
+            raise HTTPException(403,detail="DEYE_BINDING_ACCESS_NOT_CONFIRMED")
+        except ValueError:
+            raise HTTPException(400,detail="DEYE_BINDING_CONFIGURATION_OR_EVIDENCE_INVALID")
+        except DeyeApiError:
+            raise HTTPException(502,detail="DEYE_BINDING_PROVIDER_CHECK_FAILED")
+        return {"data":{**result,"bindingId":str(binding)}}
 
     @api.post("/dashboard/deye/stations/discover", include_in_schema=False)
     def dashboard_discover_deye_stations(request: Request, body: dict = Body(...)):

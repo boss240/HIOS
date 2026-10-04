@@ -177,6 +177,14 @@
       <div id="weatherCaptureRows" class="forecast-readiness-list"></div>
     </section>
 
+    <section class="forecast-readiness" aria-labelledby="deyeBindingTitle">
+      <h2 id="deyeBindingTitle">Підтвердити підключення Deye</h2>
+      <p>Виберіть вашу СЕС і її ID або посилання зі сторінки станції Deye Cloud. Кнопка виконує лише перевірку доступу й зберігає прив’язку. Паролі вводити не потрібно.</p>
+      <label for="deyeBindingPlant">СЕС у HIOS</label><select id="deyeBindingPlant"><option value="">Оберіть об’єкт</option></select>
+      <label for="deyeBindingStation">ID або посилання станції Deye</label><input id="deyeBindingStation" type="text" autocomplete="off" placeholder="ID станції або https://www.deyecloud.com/station/basic?id=…">
+      <button id="verifyDeyeBinding" type="button" disabled>Перевірити й зберегти read-only прив’язку</button>
+      <p id="deyeBindingStatus" role="status"></p>
+    </section>
     <section class="forecast-readiness" aria-labelledby="pvAnalysisTitle">
       <h2 id="pvAnalysisTitle">Готовність до порівняння прогнозу й факту</h2>
       <p>Виберіть збережені джерела однієї СЕС. Перевірка читає архів і не звертається до інвертора.</p>
@@ -215,6 +223,7 @@
   <script src="/assets/weather-capture-archive.js" defer></script>
   <script src="/assets/solar-history-dashboard.js" defer></script>
   <script src="/assets/weather-pv-analysis.js" defer></script>
+  <script src="/assets/deye-binding-verification.js" defer></script>
 </body>
 </html>
 

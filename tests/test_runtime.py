@@ -1276,6 +1276,50 @@ def test_server_deye_binding_verification_commits_only_confirmed_access(db,mode)
         assert c.execute('SELECT discovery_status FROM inverter_cloud_binding WHERE binding_id=%s',(binding,)).fetchone()[0]==('verified' if mode=='success' else 'pending')
 
 
+def test_dashboard_verifies_owned_deye_binding_idempotently_without_client_secrets(db,keys,monkeypatch):
+    monkeypatch.setenv('HIOS_DASHBOARD_USER','binding-operator')
+    monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')
+    class Fake:
+        auth=0
+        def obtain_token(self):self.auth+=1;return 'token'
+        def list_stations(self,token,*,page,size):return {'data':{'records':[{'id':7,'name':'station'}]}}
+        def station_devices(self,token,ids,*,size):return {'deviceListItems':[{'deviceSn':'private'}]}
+    api=Fake();monkeypatch.setattr(main_module,'deye_client_from_environment',lambda:api)
+    auth=('binding-operator','test-only-password')
+    with TestClient(create_app(db,keys[1],'hios-test','hios-api')) as dashboard:
+        plant=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Binding pilot'}).json()['data']['id']
+        path=f'/dashboard/plants/{plant}/deye-binding/verify'
+        body={'stationReference':'7','confirmReadOnly':True}
+        assert dashboard.post(path,json=body).status_code==401
+        assert dashboard.post(path,auth=auth,json={**body,'appSecret':'forbidden'}).status_code==400
+        assert dashboard.post('/dashboard/plants/001/deye-binding/verify',auth=auth,json=body).status_code==403
+        assert api.auth==0
+        first=dashboard.post(path,auth=auth,json=body)
+        assert first.status_code==200 and first.json()['data']['status']=='verified'
+        second=dashboard.post(path,auth=auth,json=body)
+        assert second.json()['data']['bindingId']==first.json()['data']['bindingId']
+        assert 'private' not in first.text
+    with psycopg.connect(db) as c:
+        assert c.execute('SELECT count(*) FROM inverter_cloud_binding').fetchone()[0]==1
+
+
+def test_dashboard_failed_deye_verification_leaves_pending_and_redacts_provider(db,keys,monkeypatch):
+    from app.deye_openapi import DeyeApiError
+    monkeypatch.setenv('HIOS_DASHBOARD_USER','binding-operator')
+    monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')
+    class Fake:
+        def obtain_token(self):raise DeyeApiError('private-password',provider_code='2101025')
+    monkeypatch.setattr(main_module,'deye_client_from_environment',lambda:Fake())
+    auth=('binding-operator','test-only-password')
+    with TestClient(create_app(db,keys[1],'hios-test','hios-api')) as dashboard:
+        plant=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Pending pilot'}).json()['data']['id']
+        response=dashboard.post(f'/dashboard/plants/{plant}/deye-binding/verify',auth=auth,
+            json={'stationReference':'7','confirmReadOnly':True})
+        assert response.status_code==502 and 'private' not in response.text
+    with psycopg.connect(db) as c:
+        assert c.execute('SELECT discovery_status FROM inverter_cloud_binding').fetchone()[0]=='pending'
+
+
 def test_dashboard_audits_one_past_deye_day_without_persisting_raw_telemetry(db, keys, monkeypatch):
     monkeypatch.setenv("HIOS_DASHBOARD_USER", "operator")
     monkeypatch.setenv("HIOS_DASHBOARD_PASSWORD", "test-only-password")

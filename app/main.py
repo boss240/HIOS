@@ -517,8 +517,8 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             raise HTTPException(403)
         except WeatherProviderConfigurationError:
             return JSONResponse(status_code=503,content={"error":{"code":"WEATHER_KEY_NOT_CONFIGURED"}})
-        except WeatherProviderHttpError:
-            return JSONResponse(status_code=502,content={"error":{"code":"WEATHER_PROVIDER_UNAVAILABLE"}})
+        except WeatherProviderHttpError as error:
+            return JSONResponse(status_code=502,content={"error":{"code":error.public_code}})
         except ValueError:
             return JSONResponse(status_code=400,content={"error":{"code":"WEATHER_CAPTURE_INVALID"}})
 

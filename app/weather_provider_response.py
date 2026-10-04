@@ -122,3 +122,67 @@ def parse_solcast_radiation_forecast(payload: Mapping[str, Any]) -> tuple[Provid
             },
         ))
     return tuple(records)
+
+
+_OPEN_METEO_FIELDS = (
+    "temperature_2m", "cloud_cover", "wind_speed_10m", "shortwave_radiation",
+    "direct_radiation", "diffuse_radiation",
+)
+
+
+def _open_meteo_time(value: Any) -> datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise WeatherProviderSchemaError("Open-Meteo time must be a non-empty ISO-8601 string")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise WeatherProviderSchemaError("Open-Meteo time must be ISO-8601") from error
+    if parsed.tzinfo is None:
+        # The parser accepts naive timestamps only after the response proves UTC.
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def parse_open_meteo_hourly_benchmark(payload: Mapping[str, Any]) -> tuple[ProviderWeatherInterval, ...]:
+    """Parse a UTC Open-Meteo hourly solar-weather benchmark response.
+
+    Open-Meteo hourly radiation values represent the preceding-hour mean, so
+    every timestamp is treated as the interval end. This parser is for a
+    challenger/benchmark path and does not authorize operational failover.
+    """
+    if payload.get("utc_offset_seconds") != 0:
+        raise WeatherProviderSchemaError("Open-Meteo response must declare UTC offset zero")
+    units = _mapping(payload.get("hourly_units"), "hourly_units")
+    hourly = _mapping(payload.get("hourly"), "hourly")
+    required_units = {
+        "time": "iso8601", "temperature_2m": "°C", "cloud_cover": "%",
+        "wind_speed_10m": "km/h", "shortwave_radiation": "W/m²",
+        "direct_radiation": "W/m²", "diffuse_radiation": "W/m²",
+    }
+    for field, unit in required_units.items():
+        if units.get(field) != unit:
+            raise WeatherProviderSchemaError(f"Open-Meteo {field} must use {unit}")
+    values: dict[str, list[Any]] = {}
+    for field in ("time",) + _OPEN_METEO_FIELDS:
+        rows = hourly.get(field)
+        if not isinstance(rows, list) or not rows:
+            raise WeatherProviderSchemaError(f"Open-Meteo hourly.{field} must be a non-empty array")
+        values[field] = rows
+    count = len(values["time"])
+    if any(len(rows) != count for rows in values.values()):
+        raise WeatherProviderSchemaError("Open-Meteo hourly arrays must have equal length")
+    records = []
+    for index in range(count):
+        interval_end = _open_meteo_time(values["time"][index])
+        records.append(ProviderWeatherInterval(
+            provider="open_meteo", valid_at_utc=interval_end - timedelta(hours=1),
+            interval_end_utc=interval_end, values={
+                "temperature_c": _number(values["temperature_2m"][index], "temperature_2m", minimum=-100),
+                "cloud_cover_pct": _number(values["cloud_cover"][index], "cloud_cover", minimum=0, maximum=100),
+                "wind_speed_ms": _number(values["wind_speed_10m"][index], "wind_speed_10m") / 3.6,
+                "irradiance_global_wm2": _number(values["shortwave_radiation"][index], "shortwave_radiation"),
+                "irradiance_direct_wm2": _number(values["direct_radiation"][index], "direct_radiation"),
+                "irradiance_diffuse_wm2": _number(values["diffuse_radiation"][index], "diffuse_radiation"),
+            },
+        ))
+    return tuple(records)

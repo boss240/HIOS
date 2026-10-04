@@ -20,10 +20,16 @@ rewriting of evidence. Raw payloads, request URLs, credentials and tokens are
 excluded. This table is distinct from a production forecast run and does not
 claim forecast accuracy or authorise equipment control.
 
-The module is callable persistence infrastructure. A provider collector must
-still supply the real receipt time, select the authorised plant, invoke storage
-and retain the returned capture ID. No scheduler or live collection is enabled
-by this migration. Accuracy evaluation must use receipt time as the availability
+`app/provider_forecast_collection.py` connects the Google/Solcast readers to
+storage. It verifies membership and plant coordinates before making a request,
+records receipt after parsing, and excludes already-started intervals explicitly.
+The protected dashboard exposes GET/POST
+`/dashboard/plants/{plant_id}/weather-captures`. POST requires `provider` to be
+`google_weather` or `solcast` and `confirm` to be `CAPTURE_FORECAST`.
+Server-side keys are required; absent keys return `WEATHER_KEY_NOT_CONFIGURED`
+without synthetic replacement or a provider request. GET lists the latest 100
+capture summaries for the authorised plant. No scheduler is enabled.
+Accuracy evaluation must use receipt time as the availability
 cutoff when provider issue time is unknown; it must never label that receipt as
 a provider issue time. Comparisons require the same plant, target interval,
 forecast horizon and approved actuals measurement boundary.

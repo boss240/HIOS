@@ -28,6 +28,7 @@ from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
 from app.provider_forecast_capture import store_forecast_capture
 from app.weather_provider_response import ProviderWeatherInterval
+from app.provider_forecast_collection import collect_provider_forecast, list_provider_captures
 from app.actual_generation_store import (
     ActualGenerationObservation,
     ActualGenerationSnapshot,
@@ -37,6 +38,31 @@ from app.actuals_field_mapping import EnergySemantics
 from app.actuals_alignment import load_aligned_power_samples
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
+
+
+def test_collection_persists_future_rows_and_denies_foreign_plant_before_network(db):
+    captured = datetime(2026,10,4,10,tzinfo=timezone.utc)
+    with psycopg.connect(db) as connection:
+        connection.execute("INSERT INTO plant_profile(plant_id,latitude,longitude) VALUES ('002',50,30)")
+    class Reader:
+        calls = 0
+        def hourly_forecast(self, request):
+            self.calls += 1
+            return tuple(ProviderWeatherInterval('google_weather',captured+timedelta(hours=h),
+                captured+timedelta(hours=h+1),{'cloud_cover_pct':40}) for h in (0,1,2))
+    reader = Reader()
+    options = dict(tenant_id='a',plant_id='002',provider='google_weather',reader=reader,clock=lambda:captured)
+    with pytest.raises(PermissionError):
+        collect_provider_forecast(db,'bob',**options)
+    assert reader.calls == 0
+    result = collect_provider_forecast(db,'alice',**options)
+    assert result['intervalCount'] == 2
+    assert result['excludedStartedIntervals'] == 1
+    summaries = list_provider_captures(db,'alice',tenant_id='a',plant_id='002')
+    assert summaries[0]['captureId'] == result['captureId']
+    assert summaries[0]['providerIssuedAtUtc'] is None
+    with pytest.raises(PermissionError):
+        list_provider_captures(db,'bob',tenant_id='a',plant_id='002')
 
 
 def test_provider_capture_is_idempotent_tenant_scoped_and_immutable(db):

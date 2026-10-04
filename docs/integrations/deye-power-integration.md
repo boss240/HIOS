@@ -10,6 +10,14 @@ number without a unit:
 https://developer.deyecloud.com/openmcp/docs/deye-open-mcp-tools.html
 That schema alone is insufficient to approve production measurement mapping.
 
+The bounded `DeyeReadOnlyClient.device_latest` reader accepts one to ten distinct
+serials selected from approved station discovery. Official device/latest data
+contains measurement `key`, `unit` and `value`. `deye_device_units.measurement_units`
+returns only keys/units and flags conflicting units; it excludes serials and
+measurement values. A device unit does not by itself establish the equivalent
+station field: station/device timestamps, aggregation and meter boundary still
+need reconciliation. Auth rejection must stop the probe without retry loops.
+
 The algorithm integrates piecewise linear instantaneous power, splitting
 segments at UTC hour/day boundaries. It accepts at most 10-minute gaps by
 default; the caller may explicitly set a limit from 1 to 900 seconds.

@@ -68,6 +68,23 @@ def test_station_device_discovery_is_limited_to_one_or_two_pilots():
         api.station_devices("raw-token", (1, 2, 3))
 
 
+def test_latest_devices_retains_explicit_units_and_is_read_only():
+    requests = []
+    body = {'success':True,'deviceDataList':[{'dataList':[{'key':'power','unit':'W','value':1200}]}]}
+    api = client(lambda request: requests.append(request) or httpx.Response(200,json=body))
+    assert api.device_latest('raw-token', ('selected-device',)) == body
+    assert requests[0].url.path == '/v1.0/device/latest'
+    assert json.loads(requests[0].content) == {'deviceList':['selected-device']}
+    assert requests[0].headers['authorization'] == 'bearer raw-token'
+
+
+@pytest.mark.parametrize('serials',[(),('a',)*2,tuple(str(n) for n in range(11)),(' ',),(None,),(' a',),'a',['a'],('a'*129,)])
+def test_latest_devices_rejects_bad_scope_before_request(serials):
+    def handler(request):
+        pytest.fail('invalid scope made network request')
+    with pytest.raises(ValueError):client(handler).device_latest('token',serials)
+
+
 def test_rejected_token_exposes_only_safe_endpoint_and_status_diagnostics():
     api = client(lambda request: httpx.Response(200, json={
         "success": False, "code": "2101025", "message": "secret response",

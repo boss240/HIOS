@@ -19,6 +19,7 @@ _READ_PATHS = frozenset({
     "/v1.0/account/info", "/v1.0/account/token", "/v1.0/station/list",
     "/v1.0/station/device", "/v1.0/station/history", "/v1.0/station/history/power",
     "/v1.0/station/latest", "/v1.0/station/alertList",
+    "/v1.0/device/latest",
 })
 
 
@@ -109,6 +110,20 @@ class DeyeReadOnlyClient:
         return self._post("/v1.0/station/device", {
             "page": page, "size": size, "stationIds": list(station_ids),
         }, token=token)
+
+    def device_latest(self, token: str, device_serials: tuple[str, ...]) -> dict[str, Any]:
+        """Read units and latest measurements for at most ten selected devices.
+
+        Callers must select serials from the approved station device response.
+        This method does not discover devices, persist measurements or control
+        equipment. Serial numbers must stay out of logs and public responses.
+        """
+        if not isinstance(device_serials, tuple) or not 1 <= len(device_serials) <= 10:
+            raise ValueError('one to ten selected device serials required')
+        if any(not isinstance(s, str) or not s.strip() or s != s.strip() or len(s) > 128
+               for s in device_serials) or len(set(device_serials)) != len(device_serials):
+            raise ValueError('device serials must be distinct nonempty strings')
+        return self._post('/v1.0/device/latest', {'deviceList':list(device_serials)}, token=token)
 
     def station_history(self, token: str, station_id: int, *, granularity: int,
                         start_at: str, end_at: str | None = None) -> dict[str, Any]:

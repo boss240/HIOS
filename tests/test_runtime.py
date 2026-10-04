@@ -60,11 +60,35 @@ def test_device_solar_capture_is_owned_idempotent_and_immutable(db):
         document = connection.execute('SELECT document FROM device_solar_capture').fetchone()[0]
         assert 'private' not in str(document)
         assert document['scope'] == 'device_only'
+        from app.deye_solar_archive import list_device_solar_archive
+        archive=list_device_solar_archive(db,'alice',tenant_id='a',plant_id='002',
+                                         start_day=date(2020,1,1),end_day=date(2020,1,1))
+        assert len(archive)==1 and archive[0]['sampleCount']==2
+        assert 'private' not in str(archive)
+        assert 'device_sha256' not in str(archive)
+        with pytest.raises(PermissionError):
+            list_device_solar_archive(db,'bob',tenant_id='a',plant_id='002',
+                                     start_day=date(2020,1,1),end_day=date(2020,1,1))
         assert document['hours'][0]['coveredSeconds'] == 300
         assert not document['hours'][0]['complete']
         assert connection.execute('SELECT count(*) FROM actual_generation_snapshot').fetchone()[0] == 0
         with pytest.raises(psycopg.Error):
             connection.execute('UPDATE device_solar_capture SET document=document')
+
+
+def test_solar_archive_http_requires_auth_owned_plant_and_bounded_dates(db,keys,monkeypatch):
+    monkeypatch.setenv('HIOS_DASHBOARD_USER','operator')
+    monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')
+    auth=('operator','test-only-password')
+    with TestClient(create_app(db,keys[1],'hios-test','hios-api')) as dashboard:
+        plant=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Archive test'}).json()['data']['id']
+        path='/dashboard/plants/'+plant+'/solar-history'
+        query={'start':'2020-01-01','end':'2020-01-31'}
+        assert dashboard.get(path,params=query).status_code==401
+        assert dashboard.get(path,params=query,auth=auth).json()=={'data':[]}
+        assert dashboard.get('/dashboard/plants/001/solar-history',params=query,auth=auth).status_code==403
+        assert dashboard.get(path,params={**query,'end':'2020-02-01'},auth=auth).status_code==400
+        assert dashboard.get(path,params={**query,'start':'invalid'},auth=auth).status_code==400
 
 
 def test_dc_capacity_patch_preserves_profile_and_checks_owner(db):

@@ -30,6 +30,7 @@ from app.provider_forecast_capture import store_forecast_capture
 from app.weather_provider_response import ProviderWeatherInterval
 from app.provider_forecast_collection import collect_provider_forecast, list_provider_captures
 from app.plant_onboarding import update_plant_profile, get_onboarding
+from app.weather_capture_job import run_capture_job
 from app.actual_generation_store import (
     ActualGenerationObservation,
     ActualGenerationSnapshot,
@@ -39,6 +40,29 @@ from app.actuals_field_mapping import EnergySemantics
 from app.actuals_alignment import load_aligned_power_samples
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
+
+
+def test_capture_job_retains_success_skips_slot_and_denies_foreign_scope(db):
+    now=datetime(2026,10,4,10,tzinfo=timezone.utc)
+    calls=[]
+    def collector(database_url,subject,*,tenant_id,plant_id,provider):
+        calls.append(provider)
+        if provider=='solcast':raise RuntimeError('sensitive upstream text must not be retained')
+        row=ProviderWeatherInterval(provider,now+timedelta(hours=1),now+timedelta(hours=2),{'cloud_cover_pct':40})
+        store_forecast_capture(database_url,subject,capture_id=uuid4(),tenant_id=tenant_id,
+            plant_id=plant_id,provider=provider,mapping_version='test-v1',captured_at=now,intervals=(row,))
+        return {'intervalCount':1}
+    options=dict(database_url=db,subject='alice',tenant_id='a',plant_ids=('002',),collector=collector,now=now)
+    first=run_capture_job(**options)
+    assert first[0]['status']=='captured'
+    assert first[1]['status']=='failed'
+    assert 'sensitive' not in str(first)
+    second=run_capture_job(**options)
+    assert second[0]['status']=='slot_already_captured'
+    assert calls==['google_weather','solcast','solcast']
+    denied=run_capture_job(**{**options,'subject':'bob'})
+    assert all(o['errorClass']=='PermissionError' for o in denied)
+    assert len(calls)==3
 
 
 def test_passport_patch_preserves_other_fields_and_checks_owner(db):

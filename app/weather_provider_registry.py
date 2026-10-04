@@ -17,10 +17,10 @@ class WeatherProviderDefinition:
 PROVIDER_CATALOG = {
     "google_weather": WeatherProviderDefinition("google_weather", "Google Weather", "global", "Погода за координатами"),
     "solcast": WeatherProviderDefinition("solcast", "Solcast", "solar", "Сонячна радіація та прогноз генерації"),
-    "open_meteo": WeatherProviderDefinition("open_meteo", "Open-Meteo Ensemble", "benchmark", "Ансамблеві сценарії для порівняння"),
-    "meteomatics": WeatherProviderDefinition("meteomatics", "Meteomatics", "global", "Високороздільний погодний канал"),
-    "meteoblue": WeatherProviderDefinition("meteoblue", "meteoblue", "global", "Мультимодельний погодний прогноз"),
-    "eosda_weather": WeatherProviderDefinition("eosda_weather", "EOSDA Weather", "ukrainian", "Український провайдер геопросторових даних"),
+    "open_meteo": WeatherProviderDefinition("open_meteo", "Open-Meteo", "benchmark", "Кандидат для порівняння; комерційні права потребують підтвердження"),
+    "meteomatics": WeatherProviderDefinition("meteomatics", "Meteomatics", "global", "Кандидат: радіація й погода; потрібен договір API"),
+    "meteoblue": WeatherProviderDefinition("meteoblue", "meteoblue", "global", "Кандидат: мультимодельний прогноз; потрібні права архівування"),
+    "eosda_weather": WeatherProviderDefinition("eosda_weather", "EOSDA Weather", "ukrainian", "Кандидат: погодні фактори; склад і доступність продукту потребують перевірки"),
     "local_partner": WeatherProviderDefinition("local_partner", "Локальний погодний партнер", "ukrainian", "Контрактний локальний канал"),
 }
 

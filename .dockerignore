@@ -11,3 +11,5 @@ __pycache__
 *.key
 test-results.xml
 sources
+
+.venv311

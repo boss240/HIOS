@@ -47,8 +47,9 @@ def test_frame_history_for_day_has_an_explicit_closed_utc_window():
     api.station_frame_history_for_day("raw-token", 11, closed_day_utc=date(2026, 9, 10))
 
     assert json.loads(requests[0].content) == {
-        "stationId": 11, "granularity": 1, "startAt": "2026-09-10", "endAt": "2026-09-11",
+        "stationId": 11, "startTimestamp": 1788998400, "endTimestamp": 1789084799,
     }
+    assert requests[0].url.path == "/v1.0/station/history/power"
     with pytest.raises(ValueError):
         api.station_frame_history_for_day("raw-token", 11, closed_day_utc=datetime(2026, 9, 10))
 

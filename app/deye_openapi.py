@@ -7,7 +7,7 @@ secret manager and explicitly invoke an individual read operation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 from typing import Any, Mapping
 
@@ -124,8 +124,13 @@ class DeyeReadOnlyClient:
         """Read one explicitly selected UTC day of station power intervals."""
         if isinstance(closed_day_utc, datetime) or not isinstance(closed_day_utc, date):
             raise ValueError("closed_day_utc must be a date")
-        return self.station_history(
-            token, station_id, granularity=1,
-            start_at=closed_day_utc.isoformat(),
-            end_at=(closed_day_utc + timedelta(days=1)).isoformat(),
-        )
+        if isinstance(station_id, bool) or not isinstance(station_id, int) or station_id <= 0:
+            raise ValueError("station_id must be a positive integer")
+        # Calendar-date history uses the station's day boundary. Use the
+        # documented epoch-seconds endpoint for an unambiguous UTC window.
+        start = datetime.combine(closed_day_utc, datetime.min.time(), timezone.utc)
+        return self._post("/v1.0/station/history/power", {
+            "stationId": station_id,
+            "startTimestamp": int(start.timestamp()),
+            "endTimestamp": int((start + timedelta(days=1)).timestamp()) - 1,
+        }, token=token)

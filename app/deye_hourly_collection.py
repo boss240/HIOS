@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import date, datetime, timezone
+import math
 from typing import Any, Mapping
 
 from app.deye_frame_quality import audit_station_frame_history
@@ -23,7 +24,8 @@ def hourly_coverage(body: Mapping[str, Any]) -> tuple[dict[str, int], ...]:
     counts: dict[str, int] = {}
     for row in _frame_rows(body):
         value = row.get("timeStamp")
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or int(value) != value:
+        if (isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) or int(value) != value):
             continue
         timestamp = int(value)
         if not 1_000_000_000 <= timestamp <= 9_999_999_999:

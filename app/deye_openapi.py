@@ -20,6 +20,7 @@ _READ_PATHS = frozenset({
     "/v1.0/station/device", "/v1.0/station/history", "/v1.0/station/history/power",
     "/v1.0/station/latest", "/v1.0/station/alertList",
     "/v1.0/device/latest",
+    "/v1.0/device/historyRaw",
 })
 
 
@@ -124,6 +125,27 @@ class DeyeReadOnlyClient:
                for s in device_serials) or len(set(device_serials)) != len(device_serials):
             raise ValueError('device serials must be distinct nonempty strings')
         return self._post('/v1.0/device/latest', {'deviceList':list(device_serials)}, token=token)
+
+    def device_solar_history_for_day(self, token: str, device_serial: str, *,
+                                     closed_day_utc: date) -> dict[str, Any]:
+        """Read explicit PV measurements for one selected device and closed UTC day.
+
+        No pagination, retries, persistence or station-power unit inference.
+        Callers select the serial from the approved station's device list.
+        """
+        if (not isinstance(device_serial, str) or not device_serial.strip()
+                or device_serial != device_serial.strip() or len(device_serial) > 128):
+            raise ValueError('selected device serial required')
+        if (isinstance(closed_day_utc, datetime) or not isinstance(closed_day_utc, date)
+                or closed_day_utc >= datetime.now(timezone.utc).date()):
+            raise ValueError('completed UTC date required')
+        start = datetime.combine(closed_day_utc, datetime.min.time(), timezone.utc)
+        return self._post('/v1.0/device/historyRaw', {
+            'deviceSn': device_serial,
+            'startTimestamp': int(start.timestamp()),
+            'endTimestamp': int((start + timedelta(days=1)).timestamp()) - 1,
+            'measurePoints': ['TotalSolarPower', 'PVDailyPowerGenerationActive'],
+        }, token=token)
 
     def station_history(self, token: str, station_id: int, *, granularity: int,
                         start_at: str, end_at: str | None = None) -> dict[str, Any]:

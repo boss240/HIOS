@@ -27,10 +27,10 @@ Solcast intervals for each approved pilot. Both composed 23 complete future
 hours after excluding the already-started Google interval. That check wrote
 no forecasts or actuals and does not establish model accuracy.
 
-Remaining work: read selected immutable captures with tenant ownership, attach
-their lineage to forecast inputs, validate each plant's real geometry and
-approved model configuration, execute and publish the model run, then compare
-against independently verified actual generation.
+The selected archive reader and candidate adapter below retain source lineage.
+Remaining work: validate each plant's real geometry and approved model
+configuration, execute and publish the model run, then compare against
+independently verified actual generation.
 
 ## Selected archive reader
 
@@ -45,7 +45,7 @@ forecast origin, and excludes intervals already started at that origin. Its
 result retains capture IDs, checksums, mapping versions and original receipt /
 optional issue times alongside composed hours. Unknown issue time stays null;
 it is not coerced into the older NormalizedWeather schema's mandatory issue
-timestamp. An explicit model input adaptation is still required.
+timestamp. The candidate adapter below supplies a separate receipt-backed path.
 
 ## Candidate generation adapter
 

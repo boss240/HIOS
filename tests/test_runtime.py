@@ -26,6 +26,8 @@ from app.forecast_worker import run_once
 from app.forecast_operations import summarize_outcomes
 from app.weather_normalization import normalize_weather
 from app.weather_store import WeatherSnapshot, create_or_get_snapshot
+from app.provider_forecast_capture import store_forecast_capture
+from app.weather_provider_response import ProviderWeatherInterval
 from app.actual_generation_store import (
     ActualGenerationObservation,
     ActualGenerationSnapshot,
@@ -35,6 +37,28 @@ from app.actuals_field_mapping import EnergySemantics
 from app.actuals_alignment import load_aligned_power_samples
 
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
+
+
+def test_provider_capture_is_idempotent_tenant_scoped_and_immutable(db):
+    captured = datetime(2026,10,4,10,tzinfo=timezone.utc)
+    row = ProviderWeatherInterval('google_weather',captured+timedelta(hours=1),
+        captured+timedelta(hours=2),{'cloud_cover_pct':40,'temperature_c':20})
+    options = dict(tenant_id='a',plant_id='002',provider='google_weather',
+        mapping_version='google-v1',captured_at=captured,intervals=(row,))
+    first = store_forecast_capture(db,'alice',capture_id=uuid4(),**options)
+    assert store_forecast_capture(db,'alice',capture_id=uuid4(),**options) == first
+    with pytest.raises(PermissionError):
+        store_forecast_capture(db,'bob',capture_id=uuid4(),**options)
+    with pytest.raises(PermissionError):
+        store_forecast_capture(db,'alice',capture_id=uuid4(),**{**options,'plant_id':'001'})
+    with psycopg.connect(db) as connection:
+        assert connection.execute('SELECT count(*) FROM provider_forecast_capture').fetchone()[0] == 1
+        saved = connection.execute('SELECT document FROM provider_forecast_capture').fetchone()[0]
+        assert saved['provider_issued_at'] is None
+        assert 'irradiance_global_wm2' not in saved['intervals'][0]['values']
+    with psycopg.connect(db) as connection:
+        with pytest.raises(psycopg.errors.RaiseException):
+            connection.execute("UPDATE provider_forecast_capture SET mapping_version='rewritten'")
 
 
 @pytest.fixture(scope="session")

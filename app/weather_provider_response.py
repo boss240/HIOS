@@ -6,7 +6,7 @@ that Google supplies irradiance or that Solcast supplies cloud cover.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import math
 import re
@@ -23,6 +23,10 @@ class ProviderWeatherInterval:
     valid_at_utc: datetime
     interval_end_utc: datetime
     values: Mapping[str, float]
+    # Some providers return instantaneous covariates alongside interval means.
+    # Keep those values out of interval means and retain their sampling time.
+    instant_values: Mapping[str, float] = field(default_factory=dict)
+    instant_at_utc: datetime | None = None
 
 
 def _timestamp(value: Any, name: str) -> datetime:
@@ -126,7 +130,7 @@ def parse_solcast_radiation_forecast(payload: Mapping[str, Any]) -> tuple[Provid
 
 _OPEN_METEO_FIELDS = (
     "temperature_2m", "cloud_cover", "wind_speed_10m", "shortwave_radiation",
-    "direct_radiation", "diffuse_radiation",
+    "direct_normal_irradiance", "diffuse_radiation",
 )
 
 
@@ -150,14 +154,15 @@ def parse_open_meteo_hourly_benchmark(payload: Mapping[str, Any]) -> tuple[Provi
     every timestamp is treated as the interval end. This parser is for a
     challenger/benchmark path and does not authorize operational failover.
     """
-    if payload.get("utc_offset_seconds") != 0:
+    offset = payload.get("utc_offset_seconds")
+    if isinstance(offset, bool) or not isinstance(offset, (int, float)) or offset != 0:
         raise WeatherProviderSchemaError("Open-Meteo response must declare UTC offset zero")
     units = _mapping(payload.get("hourly_units"), "hourly_units")
     hourly = _mapping(payload.get("hourly"), "hourly")
     required_units = {
         "time": "iso8601", "temperature_2m": "°C", "cloud_cover": "%",
         "wind_speed_10m": "km/h", "shortwave_radiation": "W/m²",
-        "direct_radiation": "W/m²", "diffuse_radiation": "W/m²",
+        "direct_normal_irradiance": "W/m²", "diffuse_radiation": "W/m²",
     }
     for field, unit in required_units.items():
         if units.get(field) != unit:
@@ -172,17 +177,24 @@ def parse_open_meteo_hourly_benchmark(payload: Mapping[str, Any]) -> tuple[Provi
     if any(len(rows) != count for rows in values.values()):
         raise WeatherProviderSchemaError("Open-Meteo hourly arrays must have equal length")
     records = []
+    previous_end = None
     for index in range(count):
         interval_end = _open_meteo_time(values["time"][index])
+        if interval_end.minute or interval_end.second or interval_end.microsecond:
+            raise WeatherProviderSchemaError("Open-Meteo timestamps must align to UTC hours")
+        if previous_end is not None and interval_end <= previous_end:
+            raise WeatherProviderSchemaError("Open-Meteo timestamps must increase without duplicates")
+        previous_end = interval_end
         records.append(ProviderWeatherInterval(
             provider="open_meteo", valid_at_utc=interval_end - timedelta(hours=1),
             interval_end_utc=interval_end, values={
+                "irradiance_global_wm2": _number(values["shortwave_radiation"][index], "shortwave_radiation"),
+                "irradiance_direct_wm2": _number(values["direct_normal_irradiance"][index], "direct_normal_irradiance"),
+                "irradiance_diffuse_wm2": _number(values["diffuse_radiation"][index], "diffuse_radiation"),
+            }, instant_at_utc=interval_end, instant_values={
                 "temperature_c": _number(values["temperature_2m"][index], "temperature_2m", minimum=-100),
                 "cloud_cover_pct": _number(values["cloud_cover"][index], "cloud_cover", minimum=0, maximum=100),
                 "wind_speed_ms": _number(values["wind_speed_10m"][index], "wind_speed_10m") / 3.6,
-                "irradiance_global_wm2": _number(values["shortwave_radiation"][index], "shortwave_radiation"),
-                "irradiance_direct_wm2": _number(values["direct_radiation"][index], "direct_radiation"),
-                "irradiance_diffuse_wm2": _number(values["diffuse_radiation"][index], "diffuse_radiation"),
             },
         ))
     return tuple(records)

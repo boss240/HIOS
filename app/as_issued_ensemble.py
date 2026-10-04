@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import math
 from typing import Iterable
 
 from app.provider_ensemble import EnsembleProfile, ProviderObservation, calibrate
@@ -19,11 +20,13 @@ class AsIssuedProviderPair:
 
     plant_key: str
     provider: str
-    issued_at_utc: datetime
+    issued_at_utc: datetime | None
     target_at_utc: datetime
     actual_kw: float
     predicted_kw: float
     daylight: bool
+    captured_at_utc: datetime
+    forecast_origin_utc: datetime
     quality_flags: tuple[str, ...] = ()
 
 
@@ -38,7 +41,7 @@ class AsIssuedScorecard:
 
 
 def _utc(value: datetime, name: str) -> datetime:
-    if not isinstance(value, datetime) or value.tzinfo is None:
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{name} must be a timezone-aware datetime")
     return value.astimezone(timezone.utc)
 
@@ -61,7 +64,10 @@ def score_as_issued(*, plant_key: str, rated_ac_kw: float,
     """Calibrate providers only where every candidate has comparable evidence.
 
     A target hour is eligible only when every observed provider supplied exactly
-    one daylight forecast before that hour and no quality flag is present.  Any
+    one daylight forecast received before the common forecast origin and no
+    quality flag is present. Each provider must use the same actual value and
+    forecast horizon for that hour. Provider issue time may be unknown; receipt
+    time is mandatory and never inferred from it. Any
     incomplete or invalid hour is excluded for every provider, preventing a
     source from receiving a score on an easier subset of observations.
     """
@@ -72,14 +78,25 @@ def score_as_issued(*, plant_key: str, rated_ac_kw: float,
         if _name(pair.plant_key, "pair.plant_key") != plant:
             raise ValueError("pairs must belong to exactly one plant")
         provider = _name(pair.provider, "pair.provider")
-        issued = _utc(pair.issued_at_utc, "pair.issued_at_utc")
+        issued = None if pair.issued_at_utc is None else _utc(pair.issued_at_utc, "pair.issued_at_utc")
+        captured = _utc(pair.captured_at_utc, "pair.captured_at_utc")
+        origin = _utc(pair.forecast_origin_utc, "pair.forecast_origin_utc")
         target = _hour_start(pair.target_at_utc, "pair.target_at_utc")
+        if issued is not None and issued > captured:
+            raise ValueError("provider issue time cannot follow capture time")
+        if not isinstance(pair.daylight,bool):
+            raise ValueError("daylight must be a boolean")
+        if not isinstance(pair.quality_flags,tuple) or any(not isinstance(flag,str) or not flag.strip() for flag in pair.quality_flags):
+            raise ValueError("quality flags must be a tuple of non-empty strings")
+        for value in (pair.actual_kw,pair.predicted_kw):
+            if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value < 0:
+                raise ValueError("power values must be finite non-negative numbers")
         if provider in grouped[target]:
             raise ValueError("each provider may appear once per target hour")
         # Retain normalized timestamps for deterministic comparison below.
         grouped[target][provider] = AsIssuedProviderPair(
             plant, provider, issued, target, pair.actual_kw, pair.predicted_kw,
-            pair.daylight, tuple(pair.quality_flags),
+            pair.daylight, captured, origin, pair.quality_flags,
         )
         providers.add(provider)
     if len(providers) < 2:
@@ -93,8 +110,19 @@ def score_as_issued(*, plant_key: str, rated_ac_kw: float,
         if set(by_provider) != providers:
             exclusions["incomplete_provider_coverage"] += 1
             continue
-        if any(pair.issued_at_utc >= target for pair in by_provider.values()):
+        if any(pair.captured_at_utc >= target or pair.forecast_origin_utc >= target
+               or (pair.issued_at_utc is not None and pair.issued_at_utc >= target)
+               for pair in by_provider.values()):
             exclusions["forecast_not_as_issued"] += 1
+            continue
+        if len({pair.forecast_origin_utc for pair in by_provider.values()}) != 1:
+            exclusions["different_forecast_horizons"] += 1
+            continue
+        if any(pair.captured_at_utc > pair.forecast_origin_utc for pair in by_provider.values()):
+            exclusions["forecast_received_after_origin"] += 1
+            continue
+        if len({pair.actual_kw for pair in by_provider.values()}) != 1:
+            exclusions["conflicting_actuals"] += 1
             continue
         if any(not pair.daylight for pair in by_provider.values()):
             exclusions["not_daylight"] += 1

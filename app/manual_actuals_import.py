@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import base64
 import csv
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from io import BytesIO, StringIO
 import math
 import hashlib
@@ -55,6 +55,8 @@ def _validated_rows(content: str) -> list[dict[str, object]]:
         end = _utc(row["interval_end_utc"], f"row {position} interval_end_utc")
         if end <= start:
             raise ValueError(f"row {position}: interval end must be after start")
+        if end - start != timedelta(hours=1):
+            raise ValueError(f"row {position}: interval must be exactly one hour")
         _number(row["ac_power_kw"], f"row {position} ac_power_kw")
         _number(row["energy_kwh"], f"row {position} energy_kwh")
         if not row["ac_power_kw"].strip() and not row["energy_kwh"].strip():
@@ -72,6 +74,33 @@ def _validated_rows(content: str) -> list[dict[str, object]]:
     return parsed_rows
 
 
+def _as_utc_text(value: datetime) -> str:
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def _coverage_evidence(rows: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    """Summarise hourly continuity without filling, discarding or writing a row."""
+    evidence: dict[str, dict[str, object]] = {}
+    for pilot in sorted(_PILOTS):
+        intervals = sorted((row["start"], row["end"]) for row in rows if row["pilot"] == pilot)
+        unique = sorted(set(intervals))
+        duplicates = len(intervals) - len(unique)
+        gaps = overlaps = missing_hours = 0
+        for (_, previous_end), (current_start, _) in zip(unique, unique[1:]):
+            if current_start > previous_end:
+                gaps += 1
+                missing_hours += int((current_start - previous_end) / timedelta(hours=1))
+            elif current_start < previous_end:
+                overlaps += 1
+        evidence[pilot] = {
+            "rows": len(intervals), "uniqueIntervals": len(unique), "duplicateIntervals": duplicates,
+            "gapCount": gaps, "missingHours": missing_hours, "overlapCount": overlaps,
+            "firstIntervalStartUtc": _as_utc_text(unique[0][0]) if unique else None,
+            "lastIntervalEndUtc": _as_utc_text(unique[-1][1]) if unique else None,
+        }
+    return evidence
+
+
 def preview_manual_actuals_csv(content: str) -> dict[str, object]:
     parsed_rows = _validated_rows(content)
     counts = {pilot: 0 for pilot in _PILOTS}
@@ -79,7 +108,9 @@ def preview_manual_actuals_csv(content: str) -> dict[str, object]:
         counts[row["pilot"]] += 1
     if not sum(counts.values()):
         raise ValueError("CSV has no data rows")
-    return {"rows": sum(counts.values()), "byPilot": counts, "persistence": "not_written_pending_field_mapping"}
+    return {"rows": sum(counts.values()), "byPilot": counts,
+            "quality": _coverage_evidence(parsed_rows),
+            "persistence": "not_written_pending_field_mapping"}
 
 
 def _xlsx_as_csv(content_base64: str) -> str:

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import math
 from uuid import UUID
+from typing import Any
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -31,7 +32,7 @@ class ForecastPoint:
     predicted_power_kw: float
     predicted_energy_kwh: float
     quality_flags: tuple[str, ...] = ()
-    provider_provenance: dict[str, str] | None = None
+    provider_provenance: dict[str, Any] | None = None
 
 
 def create_or_get_run(database_url: str, subject: str, run: ForecastRun) -> UUID:

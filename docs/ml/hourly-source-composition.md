@@ -27,10 +27,10 @@ Solcast intervals for each approved pilot. Both composed 23 complete future
 hours after excluding the already-started Google interval. That check wrote
 no forecasts or actuals and does not establish model accuracy.
 
-Remaining work: read selected immutable captures with tenant ownership, attach
-their lineage to forecast inputs, validate each plant's real geometry and
-approved model configuration, execute and publish the model run, then compare
-against independently verified actual generation.
+The selected archive reader and candidate adapter below retain source lineage.
+Remaining work: validate each plant's real geometry and approved model
+configuration, execute and publish the model run, then compare against
+independently verified actual generation.
 
 ## Selected archive reader
 
@@ -45,4 +45,23 @@ forecast origin, and excludes intervals already started at that origin. Its
 result retains capture IDs, checksums, mapping versions and original receipt /
 optional issue times alongside composed hours. Unknown issue time stays null;
 it is not coerced into the older NormalizedWeather schema's mandatory issue
-timestamp. An explicit model input adaptation is still required.
+timestamp. The candidate adapter below supplies a separate receipt-backed path.
+
+## Candidate generation adapter
+
+`captured_generation_preview` now calculates MODEL-001 candidate power and
+energy from the composed capture inputs with explicit geometry and model
+configuration. It calls the same physical feature calculation as the existing
+normalized-weather path, through a separate receipt-backed availability check.
+Unknown provider issue time stays null throughout provenance.
+
+Each point retains both capture IDs, hashes, mapping versions, receipt/issue
+times, field roles and the common forecast origin. It is flagged
+`uncalibrated_candidate` and `air_temperature_proxy`; unknown issue time adds
+`provider_issue_time_unknown`. Air temperature currently proxies cell
+temperature in this baseline and is not a validated thermal model.
+
+This pure adapter neither writes nor publishes points. Approved configuration,
+real plant geometry, runtime orchestration and actuals evaluation remain
+necessary. No capacities, tilt, azimuth or performance ratio are inferred for
+the pilot plants when their passport/configuration is incomplete.

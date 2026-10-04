@@ -1,0 +1,33 @@
+# Hourly Google + Solcast composition
+
+`compose_hourly_operational_weather` aligns Google UTC hours with complete
+Solcast irradiance intervals. The existing exact-interval composer remains
+available to callers that already provide matching resolutions.
+
+Solcast documents `period` as the averaging duration, default PT30M:
+https://docs.solcast.com.au/docs/section/irradiance-weather-data
+GHI, DNI and DHI are averaged with duration weights, preserving irradiation
+over the hour. Cloud cover, temperature and wind come from Google's hour.
+No instantaneous covariates are averaged or substituted for interval means.
+
+The requested Google hour must be exactly tiled by Solcast. Gaps, partial
+boundary overlap, duplicate/overlapping/unordered rows, naive timestamps,
+nonfinite/boolean values and missing required fields reject composition.
+Solcast may extend beyond Google's horizon; extra intervals are not used.
+UTC conversion precedes hourly-boundary validation.
+
+Original immutable capture IDs, receipt times, optional issue times and mapping
+versions must be retained by the orchestration caller. Resolution conversion
+does not backdate capture receipt or invent a provider issue time. Captures
+must precede the selected common forecast origin and target hours before an
+operational run or as-issued evaluation is admitted.
+
+Bounded live read verification on 2026-10-04 obtained 24 Google intervals and 97
+Solcast intervals for each approved pilot. Both composed 23 complete future
+hours after excluding the already-started Google interval. That check wrote
+no forecasts or actuals and does not establish model accuracy.
+
+Remaining work: read selected immutable captures with tenant ownership, attach
+their lineage to forecast inputs, validate each plant's real geometry and
+approved model configuration, execute and publish the model run, then compare
+against independently verified actual generation.

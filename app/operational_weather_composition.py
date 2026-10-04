@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import math
 
 from app.weather_provider_response import ProviderWeatherInterval
 
@@ -75,3 +76,55 @@ def compose_operational_weather(*, google: tuple[ProviderWeatherInterval, ...],
             ),
         ))
     return tuple(intervals)
+
+
+def compose_hourly_operational_weather(*, google: tuple[ProviderWeatherInterval, ...],
+                                       solcast: tuple[ProviderWeatherInterval, ...]) -> tuple[OperationalWeatherInterval, ...]:
+    """Compose complete Google UTC hours with Solcast interval-mean irradiance.
+
+    Solcast can extend beyond the Google horizon. Only exactly tiled hours are
+    composed; missing coverage rejects the request instead of filling a gap.
+    Original captures and their receipt/issue times must remain in provenance.
+    This changes interval resolution, never forecast origin or capture times.
+    """
+    def checked(records, provider, fields):
+        result = []
+        for row in records:
+            if row.provider != provider:
+                raise OperationalWeatherCompositionError('unexpected provider')
+            start, end = row.valid_at_utc, row.interval_end_utc
+            if any(not isinstance(t,datetime) or t.tzinfo is None or t.utcoffset() is None for t in (start,end)):
+                raise OperationalWeatherCompositionError('aware timestamps required')
+            start, end = start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+            if end <= start or result and start < result[-1].interval_end_utc:
+                raise OperationalWeatherCompositionError('ordered non-overlapping intervals required')
+            if fields.difference(row.values):
+                raise OperationalWeatherCompositionError('required interval-mean fields missing')
+            values = {field:row.values[field] for field in fields}
+            for field,value in values.items():
+                if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value):
+                    raise OperationalWeatherCompositionError('finite numeric fields required')
+                if field != 'temperature_c' and value < 0 or field == 'cloud_cover_pct' and value > 100:
+                    raise OperationalWeatherCompositionError('field outside physical range')
+            result.append(ProviderWeatherInterval(provider,start,end,values))
+        return tuple(result)
+    hours = checked(google,'google_weather',_GOOGLE_FIELDS)
+    radiation = checked(solcast,'solcast',_SOLCAST_FIELDS)
+    aligned = []
+    for hour in hours:
+        start,end = hour.valid_at_utc,hour.interval_end_utc
+        if start.minute or start.second or start.microsecond or end-start != timedelta(hours=1):
+            raise OperationalWeatherCompositionError('Google intervals must be whole UTC hours')
+        parts = [row for row in radiation if row.valid_at_utc < end and row.interval_end_utc > start]
+        cursor = start
+        means = dict.fromkeys(_SOLCAST_FIELDS,0.0)
+        for part in parts:
+            if part.valid_at_utc != cursor or part.interval_end_utc > end:
+                raise OperationalWeatherCompositionError('Solcast must tile complete hours without clipping')
+            seconds = (part.interval_end_utc-part.valid_at_utc).total_seconds()
+            for field in means:means[field] += part.values[field]*(seconds/3600)
+            cursor = part.interval_end_utc
+        if cursor != end:
+            raise OperationalWeatherCompositionError('Solcast hour coverage incomplete')
+        aligned.append(ProviderWeatherInterval('solcast',start,end,means))
+    return compose_operational_weather(google=hours,solcast=tuple(aligned))

@@ -23,3 +23,18 @@ Current real archives do not yet provide a historical overlap: device PV data is
 stored for 2026-10-03, while the retained weather forecasts were collected later.
 Do not use a later forecast or reanalysis as an earlier as-issued forecast.
 Provider weights and accuracy remain unevaluated until eligible pairs exist.
+
+## Protected API
+
+`POST /dashboard/plants/{plant_id}/weather-pv-analysis` accepts exactly
+`weatherCaptureIds` (two distinct UUID strings), `solarCaptureId` (UUID string)
+and `forecastOriginUtc` (aware nonfuture ISO timestamp). Analysis time is set by
+the server. The reader locks the owning plant and active membership, then reads
+all three selected captures inside that transaction and requires every capture
+to belong to the same tenant and plant. Cross-plant captures are denied, including
+another plant of the same operator. There is no automatic latest-source selection.
+
+Unauthorized access returns 401, scope denial returns 403, malformed requests
+or invalid evidence return 400. Success returns paired rows and exclusion counts,
+including an empty pair list when there is no eligible historical overlap.
+No provider request, source import, forecast publication or calibration occurs.

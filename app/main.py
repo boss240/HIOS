@@ -430,6 +430,18 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         except ValueError:
             return JSONResponse(status_code=400,content={'error':{'code':'PLANT_PROFILE_INVALID'}})
 
+    @api.post("/dashboard/plants/{plant_id}/weather-pv-analysis", include_in_schema=False)
+    def dashboard_weather_pv_analysis(request: Request, plant_id: str, body: dict = Body(...)):
+        from app.device_pv_analysis_service import analyze_owned_device_pv
+        tenant,subject=dashboard_context(request)
+        try:
+            return {'data':analyze_owned_device_pv(database_url,subject,tenant_id=tenant,
+                                                   plant_id=plant_id,body=body)}
+        except PermissionError:
+            raise HTTPException(403)
+        except (ValueError,TypeError,KeyError):
+            return JSONResponse(status_code=400,content={'error':{'code':'WEATHER_PV_ANALYSIS_INVALID'}})
+
     @api.get("/dashboard/plants/{plant_id}/solar-history.xlsx", include_in_schema=False)
     def dashboard_solar_history_excel(request: Request, plant_id: str, start: str, end: str):
         from app.deye_solar_archive import list_device_solar_archive

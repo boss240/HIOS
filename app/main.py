@@ -32,6 +32,7 @@ from app.forecast_readiness import list_readiness
 from app.provider_forecast_collection import collect_provider_forecast, list_provider_captures
 from app.weather_provider_credentials import WeatherProviderConfigurationError
 from app.weather_provider_clients import WeatherProviderHttpError
+from app.generation_preview_service import preview_owned_captures, PlantPreviewNotReady
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -455,6 +456,18 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
             return JSONResponse(status_code=502,content={"error":{"code":"WEATHER_PROVIDER_UNAVAILABLE"}})
         except ValueError:
             return JSONResponse(status_code=400,content={"error":{"code":"WEATHER_CAPTURE_INVALID"}})
+
+    @api.post("/dashboard/plants/{plant_id}/generation-preview", include_in_schema=False)
+    def dashboard_generation_preview(request: Request, plant_id: str, body: dict = Body(...)):
+        tenant,subject=dashboard_context(request)
+        try:
+            return {'data':preview_owned_captures(database_url,subject,tenant_id=tenant,plant_id=plant_id,body=body)}
+        except PermissionError:
+            raise HTTPException(403)
+        except PlantPreviewNotReady as exc:
+            return JSONResponse(status_code=409,content={'error':{'code':'PLANT_PREVIEW_NOT_READY','missingFields':list(exc.fields)}})
+        except (ValueError,TypeError,KeyError):
+            return JSONResponse(status_code=400,content={'error':{'code':'GENERATION_PREVIEW_INVALID'}})
 
     @api.get("/dashboard/weather-providers", include_in_schema=False)
     def dashboard_weather_providers(request: Request):

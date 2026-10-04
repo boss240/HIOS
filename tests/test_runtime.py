@@ -42,6 +42,47 @@ from app.actuals_alignment import load_aligned_power_samples
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
 
+def test_protected_candidate_preview_uses_owned_passport_and_writes_no_forecasts(db,keys,monkeypatch):
+    monkeypatch.setenv('HIOS_DASHBOARD_USER','operator')
+    monkeypatch.setenv('HIOS_DASHBOARD_PASSWORD','test-only-password')
+    receipt=datetime(2026,1,1,8,tzinfo=timezone.utc)
+    auth=('operator','test-only-password')
+    with TestClient(create_app(db,keys[1],'hios-test','hios-api')) as dashboard:
+        created=dashboard.post('/dashboard/plants',auth=auth,json={'name':'Explicit preview test',
+            'capacityKw':30,'capacityAcKw':10,'latitude':50.54,'longitude':30.62,'tiltDeg':30,
+            'azimuthDeg':180,'meterBoundary':'AC inverter output'})
+        assert created.status_code==201
+        plant=created.json()['data']['id']
+        with psycopg.connect(db) as connection:
+            tenant,subject=connection.execute('''SELECT p.tenant_id,m.subject FROM plant p
+                JOIN membership m ON m.tenant_id=p.tenant_id WHERE p.public_id=%s''',(plant,)).fetchone()
+            before=connection.execute('SELECT count(*) FROM forecast_run').fetchone()[0]
+        selected=[]
+        for provider,values in [('google_weather',{'temperature_c':12,'cloud_cover_pct':30,'wind_speed_ms':2}),
+            ('solcast',{'irradiance_global_wm2':100,'irradiance_direct_wm2':80,'irradiance_diffuse_wm2':20})]:
+            row=ProviderWeatherInterval(provider,receipt+timedelta(hours=1),receipt+timedelta(hours=2),values)
+            selected.append(str(store_forecast_capture(db,subject,capture_id=uuid4(),tenant_id=tenant,plant_id=plant,
+                provider=provider,mapping_version='v1',captured_at=receipt,intervals=(row,))))
+        body={'captureIds':selected,'forecastOriginUtc':receipt.isoformat(),'performanceRatio':.85,'temperatureCoefficientPerC':-.004}
+        path='/dashboard/plants/'+plant+'/generation-preview'
+        assert dashboard.post(path,json=body).status_code==401
+        assert dashboard.post('/dashboard/plants/002/generation-preview',auth=auth,json=body).status_code==403
+        success=dashboard.post(path,auth=auth,json=body)
+        assert success.status_code==200
+        result=success.json()['data']
+        assert result['persistence']=='not_written' and result['accuracy']=='not_evaluated'
+        assert len(result['points'])==1
+        assert 'uncalibrated_candidate' in result['points'][0]['qualityFlags']
+        assert dashboard.post(path,auth=auth,json=body|{'performanceRatio':True}).status_code==400
+        assert dashboard.post(path,auth=auth,json=body|{'forecastOriginUtc':'2100-01-01T00:00:00Z'}).status_code==400
+        assert dashboard.post(path,auth=auth,json=body|{'captureIds':[selected[0],str(uuid4())]}).status_code==403
+        dashboard.patch('/dashboard/plants/'+plant+'/profile',auth=auth,json={'tiltDeg':None})
+        missing=dashboard.post(path,auth=auth,json=body)
+        assert missing.status_code==409 and missing.json()['error']['missingFields']==['tiltDeg']
+        with psycopg.connect(db) as connection:
+            assert connection.execute('SELECT count(*) FROM forecast_run').fetchone()[0]==before
+
+
 def test_selected_capture_composition_checks_tenant_membership_and_origin(db):
     from app.captured_operational_weather import load_captured_operational_weather
     receipt=datetime(2026,10,4,10,tzinfo=timezone.utc)

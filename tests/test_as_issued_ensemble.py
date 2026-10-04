@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 
 import pytest
 
@@ -13,7 +14,9 @@ def pair(provider, actual, predicted, *, target=HOUR, issued_hour=9,
     return AsIssuedProviderPair(
         "pohreby", provider,
         datetime(2026, 10, 1, issued_hour, tzinfo=timezone.utc), target,
-        actual, predicted, daylight, quality_flags,
+        actual, predicted, daylight,
+        datetime(2026,10,1,issued_hour,tzinfo=timezone.utc),
+        target-timedelta(hours=1),quality_flags,
     )
 
 
@@ -49,12 +52,50 @@ def test_excludes_entire_hour_for_missing_late_or_flagged_candidate():
     }
 
 
-def test_rejects_non_hourly_timestamps_duplicates_and_no_eligible_evidence():
+def test_rejects_non_hourly_timestamps():
     with pytest.raises(ValueError, match="hourly UTC boundary"):
         score_as_issued(plant_key="pohreby", rated_ac_kw=30, pairs=(
             pair("google_weather", 1, 1, target=HOUR.replace(minute=30)),
             pair("solcast", 1, 1, target=HOUR.replace(minute=30)),
         ))
+
+
+@pytest.mark.parametrize('changed,reason', [
+    ({'actual_kw':11},'conflicting_actuals'),
+    ({'captured_at_utc':HOUR-timedelta(minutes=30)},'forecast_received_after_origin'),
+    ({'forecast_origin_utc':HOUR-timedelta(minutes=30)},'different_forecast_horizons'),
+])
+def test_excludes_biased_evidence_for_every_provider(changed,reason):
+    later=HOUR+timedelta(hours=1)
+    result=score_as_issued(plant_key='pohreby',rated_ac_kw=30,pairs=(
+        pair('google_weather',10,9),replace(pair('solcast',10,8),**changed),
+        pair('google_weather',9,8,target=later,issued_hour=10),
+        pair('solcast',9,8,target=later,issued_hour=10),
+    ))
+    assert result.eligible_hours == 1
+    assert dict(result.excluded_hours) == {reason:1}
+
+
+def test_unknown_provider_issue_time_uses_verified_receipt_without_invention():
+    result=score_as_issued(plant_key='pohreby',rated_ac_kw=30,pairs=(
+        replace(pair('google_weather',10,9),issued_at_utc=None),
+        replace(pair('solcast',10,8),issued_at_utc=None),
+    ))
+    assert result.eligible_hours == 1
+
+
+@pytest.mark.parametrize('changed', [
+    {'daylight':'false'}, {'actual_kw':float('nan')}, {'predicted_kw':True},
+    {'quality_flags':'outage'}, {'captured_at_utc':HOUR.replace(hour=8)},
+])
+def test_rejects_invalid_metadata_before_excluding_rows(changed):
+    with pytest.raises(ValueError):
+        score_as_issued(plant_key='pohreby',rated_ac_kw=30,pairs=(
+            replace(pair('google_weather',10,9),**changed),pair('solcast',10,8),
+        ))
+
+
+def test_rejects_duplicates_and_no_eligible_evidence():
     with pytest.raises(ValueError, match="once per target hour"):
         score_as_issued(plant_key="pohreby", rated_ac_kw=30, pairs=(
             pair("google_weather", 1, 1), pair("google_weather", 1, 1),

@@ -87,6 +87,30 @@ def build_model_001_features(*, weather: NormalizedWeather, geometry: PlantGeome
         raise ValueError("weather was not available at forecast_origin_utc")
     if weather.irradiance_direct_wm2 is None or weather.irradiance_diffuse_wm2 is None:
         raise ValueError("DNI and DHI are required; no undocumented decomposition is applied")
+    return _physical_features(weather,geometry)
+
+
+def build_captured_model_001_features(*, weather, geometry: PlantGeometry,
+        forecast_origin_utc: datetime, captured_at_utc: datetime,
+        provider_issued_at_utc: datetime | None) -> Model001FeatureBundle:
+    """Receipt-backed forecast input; unknown provider issue time stays unknown."""
+    origin=_utc(forecast_origin_utc,'forecast_origin_utc')
+    receipt=_utc(captured_at_utc,'captured_at_utc')
+    if receipt > origin:
+        raise ValueError('weather was not available at forecast_origin_utc')
+    if provider_issued_at_utc is not None and _utc(provider_issued_at_utc,'provider_issued_at_utc') > receipt:
+        raise ValueError('provider issue time cannot follow receipt')
+    start=_utc(weather.valid_at_utc,'valid_at_utc')
+    end=_utc(weather.interval_end_utc,'interval_end_utc')
+    if start <= origin or end <= start:
+        raise ValueError('future weather interval required')
+    for name in ('irradiance_global_wm2','irradiance_direct_wm2','irradiance_diffuse_wm2'):
+        _finite(getattr(weather,name),name,0)
+    _finite(weather.temperature_c,'temperature_c')
+    return _physical_features(weather,geometry)
+
+
+def _physical_features(weather, geometry: PlantGeometry) -> Model001FeatureBundle:
     midpoint = weather.valid_at_utc + (weather.interval_end_utc - weather.valid_at_utc) / 2
     elevation, solar_azimuth = _solar_position(midpoint, geometry)
     tilt = math.radians(geometry.tilt_degrees)

@@ -144,9 +144,14 @@ def update_plant_profile(*, database_url: str, subject: str, tenant_id: str,
         'mountingType':'mounting_type','meterBoundary':'meter_boundary',
         'commissioningDate':'commissioning_date','operatorNotes':'operator_notes',
     }
-    if not changes or any(name not in fields for name in changes):
+    if not changes or any(name not in fields and name != 'capacityKw' for name in changes):
         raise ValueError('patch must contain supported passport fields')
-    values = {fields[name]:value for name,value in changes.items()}
+    capacity = changes.get('capacityKw')
+    if 'capacityKw' in changes:
+        import math
+        if capacity is not None and (isinstance(capacity,bool) or not isinstance(capacity,(int,float)) or not math.isfinite(capacity) or capacity<=0):
+            raise ValueError('DC capacity must be positive or null')
+    values = {fields[name]:value for name,value in changes.items() if name != 'capacityKw'}
     if values.get('commissioning_date') is not None:
         value = values['commissioning_date']
         if not isinstance(value,str):
@@ -168,6 +173,9 @@ def update_plant_profile(*, database_url: str, subject: str, tenant_id: str,
             (tenant_id,plant_id,subject)).fetchone()
         if owned is None:
             raise PermissionError('active membership and tenant-owned plant required')
-        connection.execute('INSERT INTO plant_profile(plant_id) VALUES (%s) ON CONFLICT DO NOTHING',(plant_id,))
-        connection.execute(psycopg.sql.SQL('UPDATE plant_profile SET {},updated_at=now() WHERE plant_id=%s').format(assignments),
-            tuple(getattr(validated,name) for name in values)+(plant_id,))
+        if 'capacityKw' in changes:
+            connection.execute('UPDATE plant SET capacity_kw=%s WHERE public_id=%s',(capacity,plant_id))
+        if values:
+            connection.execute('INSERT INTO plant_profile(plant_id) VALUES (%s) ON CONFLICT DO NOTHING',(plant_id,))
+            connection.execute(psycopg.sql.SQL('UPDATE plant_profile SET {},updated_at=now() WHERE plant_id=%s').format(assignments),
+                tuple(getattr(validated,name) for name in values)+(plant_id,))

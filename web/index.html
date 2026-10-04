@@ -89,6 +89,7 @@
       <p class="card-copy">Оберіть існуючу СЕС і доповніть її дані. Змінюються лише відредаговані поля; новий об’єкт не створюється.</p>
       <label>СЕС<select id="passportPlant"><option value="">Оберіть об’єкт</option></select></label>
       <form class="asset-form" id="passportForm" hidden>
+        <label>Потужність DC, кВт<input name="capacityKw" type="number" min="0.000001" step="any"></label>
         <label>Широта<input name="latitude" type="number" min="-90" max="90" step="any"></label>
         <label>Довгота<input name="longitude" type="number" min="-180" max="180" step="any"></label>
         <label>Часова зона<input name="timezone" placeholder="Europe/Kyiv"></label>

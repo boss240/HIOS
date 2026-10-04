@@ -31,7 +31,6 @@
   const initial=generation;
   fetch('/dashboard/plants',{cache:'no-store'}).then(async response=>{
     if(!response.ok)throw Error('access');const body=await response.json();
-    if(initial!==generation)return;
     if(!Array.isArray(body.data))throw Error('invalid plants');
     body.data.forEach(p=>plant.add(new Option(p.name,p.id)));
     clear();

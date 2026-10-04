@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_dashboard_shows_deye_status_and_offers_safe_manual_actuals_templates():
     html = (ROOT / "web" / "index.html").read_text(encoding="utf-8")
     assert 'id="integrationStatus"' in html
-    assert 'Read-only дані підтверджено' in html
+    assert 'Доступ потребує поточної перевірки' in html
     assert '/downloads/hios-deye-hourly-actuals-template.csv' in html
     assert '/downloads/HIOS_Deye_Hourly_Actuals_Template.xlsx' in html
 

@@ -167,6 +167,15 @@
       <div class="forecast-readiness-list" id="forecastReadinessList" aria-live="polite">Завантаження стану прогнозування…</div>
     </section>
 
+    <section class="forecast-readiness" id="weatherCaptureArchive" aria-labelledby="weatherCaptureTitle">
+      <div class="card-head"><div><p class="eyebrow">ЗБЕРЕЖЕНІ ПРОГНОЗИ ПОГОДИ</p><h2 id="weatherCaptureTitle">Архів джерел для кожної СЕС</h2></div><button type="button" class="outline-button" id="refreshWeatherCaptures">Оновити</button></div>
+      <p class="card-copy">Час отримання й кількість інтервалів у PostgreSQL. Це прогнози погоди, а не розрахована генерація чи підтверджена точність. Оновлення цього списку не викликає погодні API.</p>
+      <label for="weatherCapturePlant">Оберіть СЕС</label>
+      <select id="weatherCapturePlant"><option value="">Оберіть об’єкт</option></select>
+      <p id="weatherCaptureStatus" role="status"></p>
+      <div id="weatherCaptureRows" class="forecast-readiness-list"></div>
+    </section>
+
     <section class="commercial-strip">
       <div><p class="eyebrow">SAAS READINESS</p><h2>Один механізм. Багато сонячних активів.</h2></div>
       <div class="commercial-items"><span>Мульти-СЕС</span><span>Ролі й tenants</span><span>API-first</span><span>Погодинні докази</span></div>
@@ -180,13 +189,14 @@
   <script src="/assets/hourly-planning-dashboard.js" defer></script>
   <script src="/assets/forecast-readiness.js" defer></script>
   <script src="/assets/plant-passport.js" defer></script>
+  <script src="/assets/weather-capture-archive.js" defer></script>
 </body>
 </html>
 
     <section class="integration-status" id="integrationStatus" aria-label="Стан інтеграцій">
       <div class="card-head"><div><p class="eyebrow">DATA INTEGRATION</p><h2>Стан даних для точного прогнозу</h2></div></div>
       <div class="integration-grid">
-        <article class="integration-card ready"><span>DEYE CLOUD</span><strong>Read-only дані підтверджено</strong><p>«Погреби» й «Борщів» відповіли на контрольний запит. Перед імпортом HIOS ще перевіряє одиниці, часову зону та межі інтервалів.</p></article>
+        <article class="integration-card pending"><span>DEYE CLOUD</span><strong>Доступ потребує поточної перевірки</strong><p>Попередня успішна перевірка не гарантує чинність доступу зараз. Контрольний read-only запит доступний у розділі підключення Deye. Фактична генерація потребує підтвердження одиниць та інтервалів.</p></article>
         <article class="integration-card ready"><span>RESERVE IMPORT</span><strong>Готово до завантаження</strong><p>Погодинний експорт Deye у CSV або Excel — резервний шлях для 14–30 днів фактів. Дані потраплять до аналізу лише після перевірки структури та одиниць.</p><p><a href="/downloads/hios-deye-hourly-actuals-template.csv" download>Шаблон CSV</a> · <a href="/downloads/HIOS_Deye_Hourly_Actuals_Template.xlsx" download>Шаблон Excel</a></p></article>
         <article class="integration-card pending"><span>FORECAST QUALITY</span><strong>Очікує перевірені actuals</strong><p>Після нормалізації HIOS порівняє факт із Google Weather, Solcast і локальними кандидатами по кожній годині та кожній СЕС.</p></article>
       </div>

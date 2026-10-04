@@ -1,5 +1,5 @@
-import importlib.util
 from pathlib import Path
+import importlib.util
 
 import pytest
 
@@ -75,3 +75,13 @@ def test_discovery_can_reuse_a_supplied_short_lived_token():
         {"pilot_key": "deye-pilot-pohreby", "station_id": 1},
     )
     assert client.calls == [("list", "shared")]
+
+
+
+def test_public_discovery_evidence_has_pilot_keys_without_station_ids():
+    evidence = module.public_pilot_keys((
+        {"pilot_key": "deye-pilot-borshchiv", "station_id": 202},
+        {"pilot_key": "deye-pilot-pohreby", "station_id": 101},
+    ))
+    assert evidence == ("deye-pilot-borshchiv", "deye-pilot-pohreby")
+    assert all("station" not in item for item in evidence)

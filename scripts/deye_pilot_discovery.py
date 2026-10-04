@@ -91,6 +91,12 @@ def discover_pilots(api: DeyeReadOnlyClient, *, token: str | None = None) -> tup
         raise ValueError("Deye response did not contain both approved pilot stations")
     return tuple(sorted(selected, key=lambda row: str(row["pilot_key"])))
 
+
+def public_pilot_keys(selected: tuple[dict[str, str | int], ...]) -> tuple[str, ...]:
+    """Return the redacted discovery evidence safe for operator logs."""
+    return tuple(str(row["pilot_key"]) for row in selected)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true", help="allow bounded read-only API calls")
@@ -105,6 +111,6 @@ def main() -> None:
             "status_code": error.status_code, "provider_code": error.provider_code,
         }, ensure_ascii=False))
         raise SystemExit(2)
-    print(json.dumps({"outcome": "completed", "selected_pilots": selected}, ensure_ascii=False))
+    print(json.dumps({"outcome": "completed", "selected_pilots": public_pilot_keys(selected)}, ensure_ascii=False))
 
 if __name__ == "__main__": main()

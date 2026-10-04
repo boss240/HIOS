@@ -13,6 +13,8 @@ class ForecastReadiness:
     plant_name: str
     cloud_status: str | None
     actual_interval_count: int
+    forecast_point_count: int
+    matched_point_count: int
     first_actual_at_utc: datetime | None
     last_actual_at_utc: datetime | None
     provider_count: int
@@ -68,6 +70,15 @@ def list_readiness(*, database_url: str, tenant_id: str, subject: str) -> tuple[
                        WHERE r.tenant_id=p.tenant_id AND r.plant_id=p.public_id),
                       (SELECT count(*) FROM actual_generation_snapshot a
                        WHERE a.tenant_id=p.tenant_id AND a.plant_id=p.public_id),
+                      (SELECT count(*) FROM forecast_point fp JOIN forecast_run fr ON fr.run_id=fp.run_id
+                       WHERE fr.tenant_id=p.tenant_id AND fr.plant_id=p.public_id),
+                      (SELECT count(*) FROM forecast_point fp JOIN forecast_run fr ON fr.run_id=fp.run_id
+                       WHERE fr.tenant_id=p.tenant_id AND fr.plant_id=p.public_id
+                         AND EXISTS (SELECT 1 FROM actual_generation_snapshot a
+                                     WHERE a.tenant_id=p.tenant_id AND a.plant_id=p.public_id
+                                       AND a.observed_at_utc=fp.interval_start_utc
+                                       AND a.interval_end_utc=fp.interval_end_utc
+                                       AND a.ac_power_kw IS NOT NULL)),
                       (SELECT min(a.observed_at_utc) FROM actual_generation_snapshot a
                        WHERE a.tenant_id=p.tenant_id AND a.plant_id=p.public_id),
                       (SELECT max(a.interval_end_utc) FROM actual_generation_snapshot a
@@ -82,18 +93,22 @@ def list_readiness(*, database_url: str, tenant_id: str, subject: str) -> tuple[
             (tenant_id,),
         ).fetchall()
     result = []
-    for plant_id, name, cloud_status, actuals, first_actual, last_actual, providers, calibrated in rows:
+    for plant_id, name, cloud_status, actuals, forecast_points, matched_points, first_actual, last_actual, providers, calibrated in rows:
         if calibrated:
             state = "calibrated"
+        elif actuals and matched_points:
+            state = "evaluation_ready"
+        elif actuals and forecast_points:
+            state = "awaiting_interval_alignment"
         elif actuals:
-            state = "calibration_pending"
+            state = "awaiting_forecast_points"
         elif cloud_status and cloud_status != "verified":
             state = "awaiting_cloud_authorization"
         else:
             state = "awaiting_actuals"
         result.append(ForecastReadiness(
-            plant_id, name, cloud_status, actuals, first_actual, last_actual, providers, calibrated, state,
-            channels, tuple(scores_by_plant.get(plant_id, ())),
+            plant_id, name, cloud_status, actuals, forecast_points, matched_points, first_actual, last_actual,
+            providers, calibrated, state, channels, tuple(scores_by_plant.get(plant_id, ())),
         ))
     return tuple(result)
 

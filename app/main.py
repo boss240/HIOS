@@ -357,6 +357,7 @@ def create_app(database_url=None, public_key=None, issuer=None, audience=None):
         return {"data": [
             {"plantId": item.plant_id, "plantName": item.plant_name,
              "cloudStatus": item.cloud_status, "actualIntervalCount": item.actual_interval_count,
+             "forecastPointCount": item.forecast_point_count, "matchedPointCount": item.matched_point_count,
              "firstActualAtUtc": item.first_actual_at_utc, "lastActualAtUtc": item.last_actual_at_utc,
              "configuredProviderCount": item.provider_count,
              "calibratedProviderCount": item.calibrated_provider_count, "state": item.state,

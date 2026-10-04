@@ -11,8 +11,10 @@ from app.deye_solar_history import solar_power_samples, solar_hourly_preview
 def store_device_solar_capture(database_url, subject, *, tenant_id, plant_id,
                                device_serial, day, retrieved_at, body):
     if (not isinstance(device_serial, str) or not device_serial.strip()
-            or len(device_serial)>128):
+            or device_serial != device_serial.strip() or len(device_serial)>128):
         raise ValueError('selected device serial required')
+    if not isinstance(body, dict) or body.get('deviceSn') != device_serial:
+        raise ValueError('history must match selected device')
     if (not isinstance(retrieved_at, datetime) or retrieved_at.tzinfo is None
             or retrieved_at.utcoffset() is None):
         raise ValueError('aware receipt required')
@@ -20,8 +22,8 @@ def store_device_solar_capture(database_url, subject, *, tenant_id, plant_id,
     if isinstance(day, datetime) or not isinstance(day, date) or day >= receipt.date():
         raise ValueError('completed UTC day required')
     samples = solar_power_samples(body)
-    if not samples:
-        raise ValueError('nonempty solar history required')
+    if not samples or len(samples)>1000 or not any(s['generationPower'] is not None for s in samples):
+        raise ValueError('bounded history with measured solar power required')
     document = {'mappingVersion':'deye-device-solar-v1', 'dayUtc':day.isoformat(),
                 'field':'TotalSolarPower', 'unit':'W', 'scope':'device_only',
                 'samples':samples,

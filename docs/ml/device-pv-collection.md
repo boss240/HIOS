@@ -31,5 +31,16 @@ collection with a transaction advisory lock, and checks device membership in the
 bound station before reading missing days. A truncated device list is rejected.
 It stores through the canonical validated capture store. No device IDs are logged.
 
-Deployment remains pending the cloud job entrypoint and production scope setup.
+The manual job entrypoint is `python -m app.deye_device_capture_job`.
+Configure server-only `HIOS_DEYE_CAPTURE_SCOPE` as a JSON list of one or two
+objects with `plantId`, `bindingId`, `deviceSerial`; keep native device IDs in
+secret references. Set `HIOS_DEYE_CAPTURE_START_UTC` and
+`HIOS_DEYE_CAPTURE_END_UTC` to explicit completed calendar dates.
+Also supply `DATABASE_URL`, `HIOS_CAPTURE_SUBJECT`, `HIOS_CAPTURE_TENANT` and
+the existing Deye credential environment variables through server secrets.
+Exit codes: 0 completed/skipped, 1 collection failure, 2 configuration failure.
+Use a manual Azure job with retry limit zero; do not add a recurring schedule
+until a successful scoped run and its persisted evidence have been verified.
+
+Deployment remains pending production binding/device scope verification.
 Do not schedule retries against unchanged rejected Deye credentials.

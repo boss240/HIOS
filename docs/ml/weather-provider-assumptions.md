@@ -17,6 +17,19 @@ credential, scheduler or network request.
 | OpenWeather Solar Irradiance | Historical issued-forecast data for training and independent backtest | Offline evaluation input only; not a runtime fallback or live publication source |
 | Open-Meteo | Independent hourly benchmark with solar and weather fields | Challenger only; no automatic operational fallback |
 
+Open-Meteo radiation mapping requires `direct_normal_irradiance` for the
+canonical DNI field. `direct_radiation` measures direct radiation on the
+horizontal plane and must not substitute for DNI. Hourly radiation means keep
+their preceding-hour interval; instantaneous temperature, cloud cover and wind
+are returned separately as `instant_values`, stamped at `instant_at_utc`.
+Consumers must explicitly align these covariates before modelling. The parser
+rejects duplicate, descending or non-hour-aligned timestamps and a boolean UTC
+offset. See the [official variable definitions](https://open-meteo.com/en/docs).
+
+A controlled live parser check on 2026-10-04 returned 48 intervals for each
+pilot coordinate. This verifies response compatibility, not forecast accuracy,
+as-issued persistence, an operational provider connection or commercial licence.
+
 Google's hourly forecast supplies up to 240 hours, which covers the proposed
 24–48 hour day-ahead horizon. Solcast is the selected irradiance provider for
 the same target intervals. The Google and Solcast accounts, restricted keys or

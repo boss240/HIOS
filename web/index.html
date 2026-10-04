@@ -102,14 +102,15 @@
       </form>
       <p id="passportStatus" role="status"></p>
     </section>
-    <section class="metrics" aria-live="polite">
-      <article><span>Очікувана енергія</span><strong id="energyValue">53.1 <small>kWh</small></strong><p id="energyNote">Наступні 24 години</p></article>
-      <article><span>Пікова потужність</span><strong id="peakValue">8.9 <small>kW</small></strong><p id="peakNote">Оцінка MODEL-001</p></article>
+    <p class="card-copy" id="demoForecastNotice"><strong>Демонстраційний прогноз.</strong> Наведені нижче енергія, потужність і крива — синтетичний приклад інтерфейсу, а не розрахунок за поточними даними СЕС. Не використовуйте їх для робочих графіків або розрахунків РДН. Збережені дані провайдерів і фактична генерація показані в окремих архівах нижче.</p>
+    <section class="metrics" aria-live="polite" aria-describedby="demoForecastNotice">
+      <article><span>Енергія · демоприклад</span><strong id="energyValue">53.1 <small>kWh</small></strong><p id="energyNote">Наступні 24 години</p></article>
+      <article><span>Пікова потужність · демоприклад</span><strong id="peakValue">8.9 <small>kW</small></strong><p id="peakNote">Синтетичний приклад</p></article>
       <article><span>Погодні сценарії</span><strong id="providersValue">0 <small>live</small></strong><p>Додайте канали для порівняння</p></article>
       <article class="metric-accent"><span>Якість прогнозу</span><strong id="qualityValue">—</strong><p>З’явиться після actuals з інверторів</p></article>
     </section>
 
-    <section class="chart-card">
+    <section class="chart-card" aria-describedby="demoForecastNotice">
       <div class="card-head">
         <div><p class="eyebrow">HOURLY ENERGY CURVE</p><h2 id="chartTitle">Погреби · прогноз на 24 години</h2></div>
         <div class="legend"><span><i class="legend-line"></i>базовий прогноз</span><span><i class="legend-area"></i>діапазон сценаріїв</span></div>
@@ -118,7 +119,7 @@
         <svg id="forecastChart" viewBox="0 0 1040 345" preserveAspectRatio="none" role="img" aria-label="Погодинний прогноз генерації"></svg>
         <div class="tooltip" id="tooltip" hidden></div>
       </div>
-      <div class="chart-foot"><span id="chartCaption">Натисніть на годину, щоб побачити сценарій.</span><span class="provisional">● provisional preview</span></div>
+      <div class="chart-foot"><span id="chartCaption">Натисніть на годину, щоб побачити сценарій.</span><span class="provisional">● демонстраційна крива</span></div>
     </section>
 
     <section class="planning-card" id="hourlyPlanning">
@@ -140,7 +141,7 @@
     <section class="split-grid">
       <article class="provider-card" id="providers">
         <div class="card-head"><div><p class="eyebrow">FORECAST MOSAIC</p><h2>Постачальники погоди</h2></div><button class="text-button" id="showProviderForm">+ Додати канал</button></div>
-        <p class="card-copy">Кожен запуск зберігає незалежний знімок прогнозу. Після зіставлення з фактом HIOS обчислює похибку та вагу провайдера для кожної СЕС.</p>
+        <p class="card-copy">Наявність налаштованого каналу ще не підтверджує отримання свіжого прогнозу. Перевіряйте час і джерело в архіві збережених прогнозів. Похибку та вагу провайдера можна оцінити лише після зіставлення прогнозу з відповідними фактичними даними СЕС.</p>
         <div class="provider-list" id="providerList"></div>
         <form class="provider-form" id="providerForm" hidden>
           <label>Провайдер <select id="providerSelect"></select></label>

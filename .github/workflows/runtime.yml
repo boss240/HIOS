@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test tests/weather-capture-archive.test.cjs tests/solar-history-dashboard.test.cjs tests/weather-pv-analysis.test.cjs
+      - run: node --test tests/weather-capture-archive.test.cjs tests/solar-history-dashboard.test.cjs tests/weather-pv-analysis.test.cjs tests/deye-binding-verification.test.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

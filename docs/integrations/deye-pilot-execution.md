@@ -30,7 +30,8 @@ are used for the controlled operator environment, use these exact names:
 | `DEYE_COMPANY_ID` | Optional Deye business-account context; omit when not applicable. |
 
 Never place a value in a workflow file, command history, issue, pull request,
-test fixture, log, output artifact or source-control commit. GitHub Actions may
+test fixture, log, output artifact or source-control commit. Discovery output
+contains pilot keys only; native station IDs remain inside the secured process. GitHub Actions may
 be used only by the explicitly manual, bounded read-only workflows in this
 repository. They must not upload raw frames or artifacts, persist provider rows,
 or enable scheduling.

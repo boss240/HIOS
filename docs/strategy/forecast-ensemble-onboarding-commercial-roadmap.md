@@ -48,7 +48,10 @@ units, coordinates, and a payload digest.
    normalized MAE, WAPE (energy), signed bias, coverage/completeness, and sample
    count.  Do not compare a forecast made after the fact with one made before it.
 5. Recalculate a rolling scorecard weekly from an immutable 30-day minimum
-   evidence window.  A candidate may become champion only if it improves the
+   evidence window. Each compared target hour must contain one forecast from
+   every candidate, captured before that target hour; incomplete, late,
+   non-daylight or quality-flagged hours are excluded for every candidate.
+   A candidate may become champion only if it improves the
    agreed primary metric against the current champion, has sufficient valid
    samples, has no material degradation in bias or coverage, and can be
    reproduced from stored provenance.

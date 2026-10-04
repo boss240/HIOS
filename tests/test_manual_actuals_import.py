@@ -1,9 +1,32 @@
 import base64
+import pytest
 from io import BytesIO
 
 from openpyxl import Workbook
 
 from app.manual_actuals_import import preview_manual_actuals_csv, preview_manual_actuals_xlsx
+
+
+@pytest.mark.parametrize('start,end', [
+    ('2026-09-18T08:00:00+03:00', '2026-09-18T09:00:00+03:00'),
+    ('2026-09-18T08:00:00-04:00', '2026-09-18T09:00:00-04:00'),
+    ('2026-09-18T08:00:00', '2026-09-18T09:00:00'),
+    ('2026-09-18T08:30:00Z', '2026-09-18T09:30:00Z'),
+    ('2026-09-18T08:00:01Z', '2026-09-18T09:00:01Z'),
+    ('2026-09-18T08:00:00.000001Z', '2026-09-18T09:00:00.000001Z'),
+])
+def test_preview_rejects_non_utc_or_shifted_hour_grid(start, end):
+    csv = 'plant_key,interval_start_utc,interval_end_utc,ac_power_kw,energy_kwh,energy_semantics,device_status,source_reference\n'
+    csv += f'deye-pilot-pohreby,{start},{end},10,9,interval,online,export-a\n'
+    with pytest.raises(ValueError):
+        preview_manual_actuals_csv(csv)
+
+
+def test_explicit_zero_offset_is_canonicalised_to_utc():
+    csv = 'plant_key,interval_start_utc,interval_end_utc,ac_power_kw,energy_kwh,energy_semantics,device_status,source_reference\n'
+    csv += 'deye-pilot-pohreby,2026-09-18T08:00:00+00:00,2026-09-18T09:00:00+00:00,10,9,interval,online,export-a\n'
+    result = preview_manual_actuals_csv(csv)
+    assert result['quality']['deye-pilot-pohreby']['firstIntervalStartUtc'] == '2026-09-18T08:00:00Z'
 
 
 def test_preview_accepts_template_rows_without_persisting():

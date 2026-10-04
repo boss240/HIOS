@@ -42,6 +42,31 @@ from app.actuals_alignment import load_aligned_power_samples
 SPEC = yaml.safe_load(Path("docs/api/openapi.yaml").read_text())
 
 
+def test_selected_capture_composition_checks_tenant_membership_and_origin(db):
+    from app.captured_operational_weather import load_captured_operational_weather
+    receipt=datetime(2026,10,4,10,tzinfo=timezone.utc)
+    selected=[]
+    for provider,values in [('google_weather',{'temperature_c':12,'cloud_cover_pct':30,'wind_speed_ms':2}),
+        ('solcast',{'irradiance_global_wm2':100,'irradiance_direct_wm2':80,'irradiance_diffuse_wm2':20})]:
+        step=60 if provider=='google_weather' else 30
+        intervals=tuple(ProviderWeatherInterval(provider,receipt+timedelta(minutes=start),receipt+timedelta(minutes=start+step),values)
+            for start in range(60,120,step))
+        selected.append(store_forecast_capture(db,'alice',capture_id=uuid4(),tenant_id='a',plant_id='002',
+            provider=provider,mapping_version='v1',captured_at=receipt,intervals=intervals))
+    options=dict(database_url=db,tenant_id='a',plant_id='002',capture_ids=tuple(selected),forecast_origin=receipt)
+    result=load_captured_operational_weather(subject='alice',**options)
+    assert len(result.intervals)==1 and result.intervals[0].irradiance_global_wm2==100
+    assert {s.capture_id for s in result.sources}==set(selected)
+    with pytest.raises(PermissionError):load_captured_operational_weather(subject='bob',**options)
+    with pytest.raises(PermissionError):load_captured_operational_weather(subject='alice',**{**options,'plant_id':'001'})
+    with pytest.raises(PermissionError):load_captured_operational_weather(subject='alice',**{**options,'tenant_id':'b'})
+    with pytest.raises(PermissionError):load_captured_operational_weather(subject='alice',**{**options,'capture_ids':(selected[0],uuid4())})
+    with pytest.raises(ValueError):load_captured_operational_weather(subject='alice',**{**options,'forecast_origin':receipt-timedelta(seconds=1)})
+    with psycopg.connect(db) as connection:
+        connection.execute("UPDATE membership SET active=false WHERE tenant_id='a' AND subject='alice'")
+    with pytest.raises(PermissionError):load_captured_operational_weather(subject='alice',**options)
+
+
 def test_capture_job_retains_success_skips_slot_and_denies_foreign_scope(db):
     now=datetime(2026,10,4,10,tzinfo=timezone.utc)
     calls=[]

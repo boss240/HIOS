@@ -30,6 +30,16 @@ class WeatherProviderHttpError(RuntimeError):
     provider: WeatherProvider
     status_code: int | None = None
 
+    @property
+    def public_code(self) -> str:
+        """Classify only HTTP status; never publish provider bodies or URLs."""
+        return {
+            401: "WEATHER_PROVIDER_AUTHENTICATION_FAILED",
+            402: "WEATHER_PROVIDER_PLAN_LIMIT",
+            403: "WEATHER_PROVIDER_ACCESS_DENIED",
+            429: "WEATHER_PROVIDER_RATE_LIMIT",
+        }.get(self.status_code, "WEATHER_PROVIDER_UNAVAILABLE")
+
     def __str__(self) -> str:
         suffix = "network failure" if self.status_code is None else f"HTTP {self.status_code}"
         return f"{self.provider.value} read request failed: {suffix}"

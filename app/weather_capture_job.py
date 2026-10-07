@@ -6,6 +6,7 @@ import os
 import sys
 import psycopg
 from app.provider_forecast_collection import collect_provider_forecast
+from app.weather_provider_clients import WeatherProviderHttpError
 
 
 def plant_scope(value: str) -> tuple[str, ...]:
@@ -60,7 +61,10 @@ def run_capture_job(*, database_url: str, subject: str, tenant_id: str,
                     result=collect(database_url,subject,tenant_id=tenant_id,plant_id=plant_id,provider=provider)
                     outcomes.append({**public,'status':'captured','intervalCount':result['intervalCount']})
             except Exception as error:
-                outcomes.append({**public,'status':'failed','errorClass':type(error).__name__})
+                failure={**public,'status':'failed','errorClass':type(error).__name__}
+                if isinstance(error, WeatherProviderHttpError):
+                    failure['errorCode']=error.public_code
+                outcomes.append(failure)
     return tuple(outcomes)
 
 

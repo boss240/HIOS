@@ -7,6 +7,14 @@ from app.deye_openapi import DeyeReadOnlyClient,DeyeCredentials
 from app.deye_dashboard_binding import SERVER_CREDENTIAL_REFERENCE
 from app.deye_device_collection_service import collect_bound_device
 
+_FAILURE_STAGES = {
+ '/v1.0/account/token': 'authentication',
+ '/v1.0/station/list': 'station_discovery',
+ '/v1.0/station/device': 'device_membership',
+ '/v1.0/device/latest': 'measurement_discovery',
+ '/v1.0/device/historyRaw': 'history_read',
+}
+
 def main():
  closed_day=datetime.now(timezone.utc).date()-timedelta(days=1)
  db=os.environ['DATABASE_URL'];subject=os.environ['HIOS_CAPTURE_SUBJECT'];tenant=os.environ['HIOS_CAPTURE_TENANT']
@@ -50,7 +58,9 @@ def main():
 def run():
  try:return main()
  except Exception as error:
-  print(json.dumps({'outcome':'collection_failed','errorClass':type(error).__name__,'providerCode':getattr(error,'provider_code',None)}),flush=True)
+  endpoint=getattr(error,'endpoint',None)
+  stage=_FAILURE_STAGES.get(endpoint,'unknown') if isinstance(endpoint,str) else 'unknown'
+  print(json.dumps({'outcome':'collection_failed','errorClass':type(error).__name__,'providerCode':getattr(error,'provider_code',None),'stage':stage}),flush=True)
   return 1
 
 if __name__=='__main__':

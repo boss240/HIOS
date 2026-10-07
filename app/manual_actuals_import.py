@@ -23,9 +23,9 @@ def _utc(value: str, label: str) -> datetime:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (AttributeError, ValueError) as error:
         raise ValueError(f"{label} must be ISO 8601 UTC") from error
-    if parsed.tzinfo is None or parsed.astimezone(timezone.utc) != parsed:
+    if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
         raise ValueError(f"{label} must be UTC")
-    return parsed
+    return parsed.astimezone(timezone.utc)
 
 
 def _number(value: str, label: str) -> None:
@@ -57,6 +57,8 @@ def _validated_rows(content: str) -> list[dict[str, object]]:
             raise ValueError(f"row {position}: interval end must be after start")
         if end - start != timedelta(hours=1):
             raise ValueError(f"row {position}: interval must be exactly one hour")
+        if any((start.minute, start.second, start.microsecond)):
+            raise ValueError(f"row {position}: interval must start on a UTC hour boundary")
         _number(row["ac_power_kw"], f"row {position} ac_power_kw")
         _number(row["energy_kwh"], f"row {position} energy_kwh")
         if not row["ac_power_kw"].strip() and not row["energy_kwh"].strip():

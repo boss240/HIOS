@@ -47,3 +47,18 @@ def test_unrecognized_endpoint_is_not_logged(capsys):
     output = capsys.readouterr().out
     assert 'private' not in output
     assert json.loads(output)['stage'] == 'unknown'
+
+
+def test_catchup_window_excludes_today_and_uses_utc():
+    from datetime import datetime, date
+    start, end = deye_daily_capture.collection_window(
+        datetime.fromisoformat('2026-10-10T00:30:00+03:00'), '7')
+    assert (start, end) == (date(2026, 10, 2), date(2026, 10, 8))
+
+
+def test_invalid_catchup_window_rejected():
+    from datetime import datetime, timezone
+    import pytest
+    for value in ('0', '32', '-1', '1.5', ' 7', 'NaN'):
+        with pytest.raises(ValueError):
+            deye_daily_capture.collection_window(datetime.now(timezone.utc), value)

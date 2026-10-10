@@ -1,10 +1,17 @@
 # Daily read-only Deye collection
 
-`python -m app.deye_daily_capture` collects the previous completed UTC day for
+`python -m app.deye_daily_capture` collects missing days in the last seven completed UTC days for
 the two approved pilots. Required environment variables are `DATABASE_URL`,
 `HIOS_CAPTURE_SUBJECT`, `HIOS_CAPTURE_TENANT`, `HIOS_CAPTURE_PLANTS` (ordered
 JSON array: Pohreby, Borshchiv), and the server-side `DEYE_APP_ID`,
 `DEYE_APP_SECRET`, `DEYE_ACCOUNT_EMAIL`, `DEYE_ACCOUNT_PASSWORD`.
+
+`HIOS_DEYE_LOOKBACK_DAYS` defaults to 7 and accepts 1–31. Stored days are
+skipped before history requests; missing days are processed oldest first and
+the first failure stops the run. This catches intermittent access failures
+within the window without retrying a rejected request during the same run.
+Older gaps require an explicitly bounded backfill. The current UTC day is
+never collected. Until this change is deployed, Azure still collects one day.
 
 The collector checks owned plant coordinates, an unambiguous station/device
 match, and the device checksum against existing captures before collection.

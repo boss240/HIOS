@@ -1,4 +1,4 @@
-"""Collect the previous completed UTC day for two verified pilot devices."""
+"""Collect missing days in a bounded closed UTC window for two pilot devices."""
 import os,json,math,sys
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
@@ -15,8 +15,18 @@ _FAILURE_STAGES = {
  '/v1.0/device/historyRaw': 'history_read',
 }
 
+def collection_window(now, lookback):
+ if now.tzinfo is None or now.utcoffset() is None:
+  raise ValueError('aware collection time required')
+ if not isinstance(lookback,str) or not lookback.isascii() or not lookback.isdecimal():
+  raise ValueError('integer lookback required')
+ days=int(lookback)
+ if not 1<=days<=31:raise ValueError('lookback must be 1..31 completed days')
+ end=now.astimezone(timezone.utc).date()-timedelta(days=1)
+ return end-timedelta(days=days-1),end
+
 def main():
- closed_day=datetime.now(timezone.utc).date()-timedelta(days=1)
+ start_day,end_day=collection_window(datetime.now(timezone.utc),os.environ.get('HIOS_DEYE_LOOKBACK_DAYS','7'))
  db=os.environ['DATABASE_URL'];subject=os.environ['HIOS_CAPTURE_SUBJECT'];tenant=os.environ['HIOS_CAPTURE_TENANT']
  ids=json.loads(os.environ['HIOS_CAPTURE_PLANTS'])
  if not isinstance(ids,list) or len(ids)!=2 or len(set(ids))!=2:raise ValueError('two scoped plants required')
@@ -51,7 +61,7 @@ def main():
    rows=connection.execute("SELECT binding_id FROM inverter_cloud_binding WHERE tenant_id=%s AND plant_id=%s AND provider='deye_cloud' AND external_plant_id=%s AND credential_reference=%s AND discovery_status='verified' AND read_only",(tenant,plant,str(station),SERVER_CREDENTIAL_REFERENCE)).fetchall()
   if len(rows)!=1:raise PermissionError('unique verified binding required')
   binding=rows[0][0]
-  outcomes=collect_bound_device(db,subject,tenant_id=tenant,plant_id=plant,binding_id=binding,device_serial=serial,start_day=closed_day,end_day=closed_day,client=client)
+  outcomes=collect_bound_device(db,subject,tenant_id=tenant,plant_id=plant,binding_id=binding,device_serial=serial,start_day=start_day,end_day=end_day,client=client)
   print(json.dumps({'outcome':'bounded_collection','plantIndex':ordinal,'verified':'verified','days':outcomes}),flush=True)
   if any(o['status']=='failed' for o in outcomes):return 1
  return 0

@@ -62,4 +62,3 @@ def test_invalid_catchup_window_rejected():
     for value in ('0', '32', '-1', '1.5', ' 7', 'NaN'):
         with pytest.raises(ValueError):
             deye_daily_capture.collection_window(datetime.now(timezone.utc), value)
-
